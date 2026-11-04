@@ -18,11 +18,12 @@ A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose an
 
 - **Library** — favourites with custom categories, long-press to remove
 - **Explore** — popular and latest titles from MangaDex, endless scroll
-- **Local sources** — import CBZ/ZIP archives through the system picker; they stay in app storage and read like any other manga
+- **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
 - **Search** — debounced title search
 - **Reader** — webtoon (continuous scroll) and paged modes, switchable on the fly; pinch-to-zoom and double-tap zoom in both modes; screen stays awake while you read
 - **History** — automatic reading progress, resume where you stopped
+- **Bookmarks** — mark any page from the reader and jump back to it from the manga details
 - **Details** — chapter list with read markers, tags, description
 - **Material You** — dynamic color from your wallpaper, or the built-in warm amber theme
 - **Expressive motion** — spring-based animation scheme, wavy progress indicators, morphing favourite toggle
@@ -74,8 +75,6 @@ UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlin
 ## Roadmap
 
 - More catalog sources behind a common interface
-- Folders of loose images as a local source
-- Bookmarks inside chapters
 - Beta release with signed builds in Releases
 
 ## Credits and legal
