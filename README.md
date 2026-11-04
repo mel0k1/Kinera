@@ -25,8 +25,8 @@ A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose an
 - **History** — automatic reading progress, resume where you stopped
 - **Bookmarks** — mark any page from the reader and jump back to it from the manga details
 - **Details** — chapter list with read markers, tags, description
-- **Material You** — dynamic color from your wallpaper, or the built-in warm amber theme
-- **Expressive motion** — spring-based animation scheme, wavy progress indicators, morphing favourite toggle
+- **Warm amber identity** — a hand-tuned cream-and-amber theme out of the box; optional wallpaper-based dynamic color in Settings
+- **Expressive motion** — spring-based animation scheme, a floating pill navigation bar whose label unfolds on selection, press-scale feedback on cards, large flexible app bars, wavy progress indicators, morphing favourite toggle, shape-morphing loader and expressive empty states with the Kinera cat
 
 ## Screenshots
 
