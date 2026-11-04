@@ -19,18 +19,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +63,8 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaState
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.local.entity.DownloadEntity
+import org.kinera.app.data.local.entity.DownloadState
 import org.kinera.app.ui.components.CoverImage
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
@@ -73,9 +85,22 @@ fun DetailsScreen(
     val chapters by viewModel.chapters.collectAsState()
     val isFavorite by viewModel.isFavorite.collectAsState()
     val progress by viewModel.progress.collectAsState()
+    val downloadStates by viewModel.downloadStates.collectAsState()
+    val message by viewModel.message.collectAsState()
     var expanded by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    LaunchedEffect(message) {
+        message?.let { resId ->
+            snackbarHostState.showSnackbar(context.getString(resId))
+            viewModel.consumeMessage()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {},
@@ -149,6 +174,15 @@ fun DetailsScreen(
                                 text = stringResource(R.string.details_chapters),
                                 style = MaterialTheme.typography.titleMedium,
                             )
+                            if (manga.source != org.kinera.app.core.model.MangaSource.LOCAL) {
+                                Spacer(Modifier.weight(1f))
+                                IconButton(onClick = viewModel::downloadAll) {
+                                    Icon(
+                                        Icons.Rounded.Download,
+                                        contentDescription = stringResource(R.string.details_download_all),
+                                    )
+                                }
+                            }
                         }
                     }
                     if (chapters.isEmpty()) {
@@ -167,13 +201,38 @@ fun DetailsScreen(
                                 chapter = chapter,
                                 isCurrent = chapter.id == progress?.chapterId,
                                 isRead = isRead,
+                                download = if (manga.source == org.kinera.app.core.model.MangaSource.LOCAL) null else downloadStates[chapter.id],
                                 onClick = { onReadChapter(manga, chapter) },
+                                onDownload = { viewModel.downloadChapter(chapter) },
+                                onCancel = { viewModel.cancelDownload(chapter.id) },
+                                onDelete = { confirmDelete = chapter.id },
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    confirmDelete?.let { chapterId ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text(stringResource(R.string.downloads_confirm_delete_title)) },
+            text = { Text(stringResource(R.string.downloads_confirm_delete_chapter)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteDownload(chapterId)
+                    confirmDelete = null
+                }) {
+                    Text(stringResource(R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 }
 
@@ -285,7 +344,11 @@ private fun ChapterRow(
     chapter: MangaChapter,
     isCurrent: Boolean,
     isRead: Boolean,
+    download: DownloadEntity?,
     onClick: () -> Unit,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -319,6 +382,51 @@ private fun ChapterRow(
                 Icons.Rounded.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DownloadAction(
+            download = download,
+            onDownload = onDownload,
+            onCancel = onCancel,
+            onDelete = onDelete,
+        )
+    }
+}
+
+@Composable
+private fun DownloadAction(
+    download: DownloadEntity?,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    when (download?.state) {
+        null -> IconButton(onClick = onDownload) {
+            Icon(
+                Icons.Rounded.Download,
+                contentDescription = stringResource(R.string.details_download_chapter),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DownloadState.QUEUED, DownloadState.RUNNING -> IconButton(onClick = onCancel) {
+            Icon(
+                Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.downloads_action_cancel),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DownloadState.DONE -> IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Rounded.CheckCircle,
+                contentDescription = stringResource(R.string.details_downloaded),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+        else -> IconButton(onClick = onDownload) {
+            Icon(
+                Icons.Rounded.ErrorOutline,
+                contentDescription = stringResource(R.string.downloads_action_retry),
+                tint = MaterialTheme.colorScheme.error,
             )
         }
     }

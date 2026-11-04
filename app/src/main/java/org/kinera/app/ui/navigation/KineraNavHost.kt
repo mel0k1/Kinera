@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import org.kinera.app.ui.screens.details.DetailsScreen
+import org.kinera.app.ui.screens.downloads.DownloadsScreen
 import org.kinera.app.ui.screens.explore.ExploreScreen
 import org.kinera.app.ui.screens.history.HistoryScreen
 import org.kinera.app.ui.screens.library.LibraryScreen
@@ -21,13 +22,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object LibraryRoute
 @Serializable data object ExploreRoute
+@Serializable data object DownloadsRoute
 @Serializable data object HistoryRoute
 @Serializable data object SettingsRoute
 @Serializable data object SearchRoute
 @Serializable data class MangaRoute(val mangaId: String)
 @Serializable data class ReaderRoute(val mangaId: String, val chapterId: String)
 
-val topLevelRoutes = listOf(LibraryRoute, ExploreRoute, HistoryRoute, SettingsRoute)
+val topLevelRoutes = listOf(LibraryRoute, ExploreRoute, DownloadsRoute, HistoryRoute, SettingsRoute)
 
 @Composable
 fun KineraNavHost(
@@ -54,6 +56,9 @@ fun KineraNavHost(
                 onMangaClick = { navController.navigate(MangaRoute(it.id)) },
                 onSearchClick = { navController.navigate(SearchRoute) },
             )
+        }
+        composable<DownloadsRoute> {
+            DownloadsScreen()
         }
         composable<HistoryRoute> {
             HistoryScreen(

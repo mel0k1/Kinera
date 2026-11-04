@@ -17,6 +17,7 @@
     <string name="library_category_name_hint">Category name</string>
     <string name="action_add">Add</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
     <string name="library_remove_favorite">Remove from library</string>
 
     <!-- Explore -->
@@ -43,6 +44,12 @@
     <!-- Details -->
     <string name="details_start_reading">Start reading</string>
     <string name="details_continue">Continue · Ch. %1$s</string>
+    <string name="details_download_chapter">Download chapter</string>
+    <string name="details_download_all">Download all chapters</string>
+    <string name="details_downloaded">Downloaded for offline reading</string>
+    <string name="details_download_queued">Chapter queued for download</string>
+    <string name="details_download_all_queued">Chapters queued for download</string>
+    <string name="details_download_deleted">Downloaded files removed</string>
     <string name="details_chapters">Chapters</string>
     <string name="details_no_chapters">No chapters available</string>
     <string name="details_add_favorite">Add to library</string>
@@ -62,6 +69,33 @@
     <string name="reader_no_prev_chapter">This is the first chapter</string>
     <string name="reader_loading_chapter">Loading chapter…</string>
 
+    <!-- Downloads -->
+    <string name="nav_downloads">Downloads</string>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_empty">Nothing downloaded yet</string>
+    <string name="downloads_empty_hint">Pick chapters on a manga page and save them for offline reading</string>
+    <string name="downloads_state_queued">Queued</string>
+    <string name="downloads_state_running">Downloading · %1$d of %2$d</string>
+    <string name="downloads_state_done">Downloaded</string>
+    <string name="downloads_state_failed">Failed</string>
+    <string name="downloads_action_cancel">Cancel download</string>
+    <string name="downloads_action_retry">Retry download</string>
+    <string name="downloads_action_delete">Delete downloaded files</string>
+    <string name="downloads_delete_all">Delete all downloads for this manga</string>
+    <string name="downloads_confirm_delete_title">Delete downloads?</string>
+    <string name="downloads_confirm_delete_text">Downloaded chapters of %1$s will be removed from the device.</string>
+    <string name="downloads_confirm_delete_chapter">Downloaded files for this chapter will be removed from the device.</string>
+
+    <!-- Local sources -->
+    <string name="explore_local">Local</string>
+    <string name="local_import">Import CBZ</string>
+    <string name="local_empty">No local comics</string>
+    <string name="local_empty_hint">Import CBZ archives and they will stay on the device for offline reading</string>
+    <string name="local_imported">Imported: %1$d</string>
+    <string name="local_import_mixed">Imported: %1$d, skipped: %2$d (already added)</string>
+    <string name="local_import_skipped">Skipped: %1$d already added</string>
+    <string name="local_import_failed">Could not import the selected files</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
@@ -75,6 +109,8 @@
     <string name="settings_reader_mode">Default reading mode</string>
     <string name="settings_keep_screen_on">Keep screen on</string>
     <string name="settings_keep_screen_on_summary">Prevent sleep while reading</string>
+    <string name="settings_webtoon_zoom">Webtoon zoom</string>
+    <string name="settings_webtoon_zoom_summary">Pinch to zoom and double-tap in webtoon mode</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_source_code">Source code</string>

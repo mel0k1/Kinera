@@ -13,6 +13,7 @@
     <string name="library_category_name_hint">Название категории</string>
     <string name="action_add">Добавить</string>
     <string name="action_cancel">Отмена</string>
+    <string name="action_delete">Удалить</string>
     <string name="library_remove_favorite">Убрать из библиотеки</string>
 
     <string name="explore_title">Обзор</string>
@@ -35,6 +36,12 @@
 
     <string name="details_start_reading">Начать читать</string>
     <string name="details_continue">Продолжить · гл. %1$s</string>
+    <string name="details_download_chapter">Скачать главу</string>
+    <string name="details_download_all">Скачать все главы</string>
+    <string name="details_downloaded">Скачано для офлайн-чтения</string>
+    <string name="details_download_queued">Глава добавлена в загрузки</string>
+    <string name="details_download_all_queued">Главы добавлены в загрузки</string>
+    <string name="details_download_deleted">Скачанные файлы удалены</string>
     <string name="details_chapters">Главы</string>
     <string name="details_no_chapters">Главы недоступны</string>
     <string name="details_add_favorite">В библиотеку</string>
@@ -53,6 +60,31 @@
     <string name="reader_no_prev_chapter">Это первая глава</string>
     <string name="reader_loading_chapter">Загружаем главу…</string>
 
+    <string name="nav_downloads">Загрузки</string>
+    <string name="downloads_title">Загрузки</string>
+    <string name="downloads_empty">Пока ничего не скачано</string>
+    <string name="downloads_empty_hint">Выберите главы на странице манги и сохраните их для офлайн-чтения</string>
+    <string name="downloads_state_queued">В очереди</string>
+    <string name="downloads_state_running">Скачивание · %1$d из %2$d</string>
+    <string name="downloads_state_done">Скачано</string>
+    <string name="downloads_state_failed">Ошибка</string>
+    <string name="downloads_action_cancel">Отменить загрузку</string>
+    <string name="downloads_action_retry">Повторить загрузку</string>
+    <string name="downloads_action_delete">Удалить скачанные файлы</string>
+    <string name="downloads_delete_all">Удалить все загрузки этой манги</string>
+    <string name="downloads_confirm_delete_title">Удалить загрузки?</string>
+    <string name="downloads_confirm_delete_text">Скачанные главы «%1$s» будут удалены с устройства.</string>
+    <string name="downloads_confirm_delete_chapter">Скачанные файлы этой главы будут удалены с устройства.</string>
+
+    <string name="explore_local">Локально</string>
+    <string name="local_import">Импорт CBZ</string>
+    <string name="local_empty">Нет локальных комиксов</string>
+    <string name="local_empty_hint">Импортируйте CBZ-архивы — они останутся на устройстве для офлайн-чтения</string>
+    <string name="local_imported">Импортировано: %1$d</string>
+    <string name="local_import_mixed">Импортировано: %1$d, пропущено: %2$d (уже добавлено)</string>
+    <string name="local_import_skipped">Пропущено: %1$d уже добавлено</string>
+    <string name="local_import_failed">Не удалось импортировать выбранные файлы</string>
+
     <string name="settings_title">Настройки</string>
     <string name="settings_appearance">Внешний вид</string>
     <string name="settings_theme_mode">Тема</string>
@@ -65,6 +97,8 @@
     <string name="settings_reader_mode">Режим чтения по умолчанию</string>
     <string name="settings_keep_screen_on">Не гасить экран</string>
     <string name="settings_keep_screen_on_summary">Экран не будет выключаться во время чтения</string>
+    <string name="settings_webtoon_zoom">Зум в ленте</string>
+    <string name="settings_webtoon_zoom_summary">Щипок и двойное нажатие для зума в режиме ленты</string>
     <string name="settings_about">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_source_code">Исходный код</string>

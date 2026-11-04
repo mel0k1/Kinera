@@ -6,6 +6,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Settings
@@ -60,6 +61,7 @@ fun KineraApp(
                                     imageVector = when (route) {
                                         is LibraryRoute -> Icons.Rounded.CollectionsBookmark
                                         is ExploreRoute -> Icons.Rounded.Explore
+                                        is DownloadsRoute -> Icons.Rounded.Download
                                         is HistoryRoute -> Icons.Rounded.History
                                         else -> Icons.Rounded.Settings
                                     },
@@ -71,6 +73,7 @@ fun KineraApp(
                                     text = when (route) {
                                         is LibraryRoute -> stringResource(R.string.nav_library)
                                         is ExploreRoute -> stringResource(R.string.nav_explore)
+                                        is DownloadsRoute -> stringResource(R.string.nav_downloads)
                                         is HistoryRoute -> stringResource(R.string.nav_history)
                                         else -> stringResource(R.string.nav_settings)
                                     },

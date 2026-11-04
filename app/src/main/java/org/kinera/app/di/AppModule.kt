@@ -7,19 +7,30 @@ import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.kinera.app.BuildConfig
+import org.kinera.app.data.downloads.DownloadStorage
 import org.kinera.app.data.local.LibraryDatabase
+import org.kinera.app.data.local.dao.CategoriesDao
+import org.kinera.app.data.local.dao.DownloadsDao
+import org.kinera.app.data.local.dao.FavouritesDao
+import org.kinera.app.data.local.dao.HistoryDao
+import org.kinera.app.data.localsource.LocalMangaSource
+import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.mangadex.MangaDexApi
 import org.kinera.app.data.mangadex.MangaDexSource
 import org.kinera.app.data.repository.CatalogRepository
+import org.kinera.app.data.repository.DownloadRepository
 import org.kinera.app.data.repository.LibraryRepository
 import org.kinera.app.data.settings.SettingsRepository
 import org.kinera.app.ui.screens.details.DetailsViewModel
+import org.kinera.app.ui.screens.downloads.DownloadsViewModel
 import org.kinera.app.ui.screens.explore.ExploreViewModel
 import org.kinera.app.ui.screens.history.HistoryViewModel
 import org.kinera.app.ui.screens.library.LibraryViewModel
 import org.kinera.app.ui.screens.reader.ReaderViewModel
 import org.kinera.app.ui.screens.search.SearchViewModel
 import org.kinera.app.ui.screens.settings.SettingsViewModel
+import org.kinera.app.worker.KineraWorkerFactory
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -46,7 +57,20 @@ val dataModule = module {
             .cache(cache)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", "Kinera/${BuildConfig.VERSION_NAME} (github.com/mel0k1/Kinera)")
+                        .build(),
+                )
+            }
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BASIC
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+            })
             .build()
     }
 
@@ -60,19 +84,37 @@ val dataModule = module {
     }
 
     single { MangaDexSource(get()) }
-    single { CatalogRepository(get()) }
+    single { LocalSourceStorage(androidContext()) }
+    single { LocalMangaSource(get()) }
+    single { CatalogRepository(get(), get()) }
 
     single {
         Room.databaseBuilder(androidContext(), LibraryDatabase::class.java, "kinera_library.db")
-            .fallbackToDestructiveMigration()
+            .addMigrations(LibraryDatabase.MIGRATION_1_2)
             .build()
     }
 
-    single { get<LibraryDatabase>().favouritesDao() }
-    single { get<LibraryDatabase>().historyDao() }
-    single { get<LibraryDatabase>().categoriesDao() }
+    single<FavouritesDao> { get<LibraryDatabase>().favouritesDao() }
+    single<HistoryDao> { get<LibraryDatabase>().historyDao() }
+    single<CategoriesDao> { get<LibraryDatabase>().categoriesDao() }
+    single<DownloadsDao> { get<LibraryDatabase>().downloadsDao() }
     single { LibraryRepository(get(), get(), get(), get()) }
+
+    single { DownloadStorage(androidContext()) }
+    single {
+        DownloadRepository(androidContext(), get(), get())
+    }
+
     single { SettingsRepository(androidContext()) }
+
+    single {
+        KineraWorkerFactory(
+            catalog = get(),
+            dao = get<DownloadsDao>(),
+            storage = get(),
+            client = get(),
+        )
+    }
 }
 
 val uiModule = module {
@@ -81,9 +123,10 @@ val uiModule = module {
     viewModelOf(::SearchViewModel)
     viewModelOf(::HistoryViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModel { (mangaId: String) -> DetailsViewModel(get(), get(), mangaId) }
+    viewModelOf(::DownloadsViewModel)
+    viewModel { (mangaId: String) -> DetailsViewModel(get(), get(), get(), mangaId) }
     viewModel { (mangaId: String, chapterId: String) ->
-        ReaderViewModel(get(), get(), get(), mangaId, chapterId)
+        ReaderViewModel(get(), get(), get(), get(), mangaId, chapterId)
     }
 }
 
