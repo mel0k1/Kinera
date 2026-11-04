@@ -49,7 +49,7 @@ jobs:
           name: kinera-debug-apk
 
       - name: Rename APK
-        run: mv app-debug.apk "Kinera-${GITHUB_REF_NAME#v}-debug.apk"
+        run: mv app-debug.apk "Kinera-${GITHUB_REF_NAME}-debug.apk"
 
       - name: Attach APK to release
         uses: softprops/action-gh-release@v2
