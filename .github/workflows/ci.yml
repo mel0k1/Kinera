@@ -52,7 +52,7 @@ jobs:
         run: mv app-debug.apk "Kinera-${GITHUB_REF_NAME}-debug.apk"
 
       - name: Attach APK to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: Kinera-*-debug.apk
           overwrite_files: true
