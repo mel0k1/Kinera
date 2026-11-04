@@ -7,11 +7,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.ImportResult
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.repository.CatalogRepository
@@ -25,6 +27,7 @@ sealed interface ExploreTab {
 class ExploreViewModel(
     private val catalog: CatalogRepository,
     private val localStorage: LocalSourceStorage,
+    private val folderStorage: FolderSourceStorage,
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ExploreTab>(ExploreTab.Popular)
@@ -40,7 +43,10 @@ class ExploreViewModel(
     val hasNext: Boolean get() = _hasNext.value
 
     /** Archives imported from the device, shown on the Local tab. */
-    val localManga: StateFlow<List<Manga>> = localStorage.library
+    val localManga: StateFlow<List<Manga>> = combine(
+        localStorage.library,
+        folderStorage.library,
+    ) { archives, folders -> (archives + folders).sortedBy { it.title.lowercase() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** One-shot result of the latest import, consumed by the screen. */
@@ -89,6 +95,20 @@ class ExploreViewModel(
 
     fun consumeImportResult() {
         _importResult.value = null
+    }
+
+    /** One-shot result of the latest folder import, consumed by the screen. */
+    private val _folderImport = MutableStateFlow<FolderSourceStorage.ImportResult?>(null)
+    val folderImport: StateFlow<FolderSourceStorage.ImportResult?> = _folderImport.asStateFlow()
+
+    fun importFolder(treeUri: Uri) {
+        viewModelScope.launch {
+            _folderImport.value = folderStorage.add(treeUri)
+        }
+    }
+
+    fun consumeFolderImport() {
+        _folderImport.value = null
     }
 
     private fun loadMore(reset: Boolean) {

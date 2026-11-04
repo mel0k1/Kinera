@@ -13,6 +13,7 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.local.entity.BookmarkEntity
 import org.kinera.app.data.local.entity.DownloadEntity
 import org.kinera.app.data.local.entity.HistoryEntity
 import org.kinera.app.data.repository.CatalogRepository
@@ -40,6 +41,10 @@ class DetailsViewModel(
 
     private val _downloadStates = MutableStateFlow<Map<String, DownloadEntity>>(emptyMap())
     val downloadStates: StateFlow<Map<String, DownloadEntity>> = _downloadStates.asStateFlow()
+
+    /** Page bookmarks of this manga, oldest first. */
+    val bookmarks: StateFlow<List<BookmarkEntity>> = library.bookmarks(mangaId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _message = MutableStateFlow<Int?>(null)
     val message: StateFlow<Int?> = _message.asStateFlow()
@@ -73,6 +78,10 @@ class DetailsViewModel(
     fun toggleFavorite() {
         val current = (_manga.value as? UiState.Success)?.data ?: return
         viewModelScope.launch { library.toggleFavorite(current) }
+    }
+
+    fun deleteBookmark(bookmark: BookmarkEntity) {
+        viewModelScope.launch { library.deleteBookmark(bookmark) }
     }
 
     fun downloadChapter(chapter: MangaChapter) {

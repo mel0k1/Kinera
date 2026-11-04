@@ -31,6 +31,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoStories
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
@@ -40,6 +42,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -79,8 +83,9 @@ private const val DOUBLE_TAP_ZOOM = 2.5f
 fun ReaderScreen(
     mangaId: String,
     chapterId: String,
+    startPage: Int = 0,
     onBack: () -> Unit,
-    viewModel: ReaderViewModel = koinViewModel(parameters = { parametersOf(mangaId, chapterId) }),
+    viewModel: ReaderViewModel = koinViewModel(parameters = { parametersOf(mangaId, chapterId, startPage) }),
 ) {
     val manga by viewModel.manga.collectAsState()
     val chapters by viewModel.chapters.collectAsState()
@@ -90,8 +95,19 @@ fun ReaderScreen(
     val readerMode by viewModel.readerMode.collectAsState()
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val webtoonZoom by viewModel.webtoonZoom.collectAsState()
+    val isBookmarked by viewModel.isBookmarked.collectAsState()
+    val message by viewModel.message.collectAsState()
 
     var controlsVisible by remember { mutableStateOf(true) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    LaunchedEffect(message) {
+        message?.let { resId ->
+            snackbarHostState.showSnackbar(context.getString(resId))
+            viewModel.consumeMessage()
+        }
+    }
 
     BackHandler(onBack = onBack)
 
@@ -171,9 +187,11 @@ fun ReaderScreen(
                 canGoNext = chapterIndex + 1 < chapters.size,
                 canGoPrev = chapterIndex > 0,
                 readerMode = readerMode,
+                isBookmarked = isBookmarked,
                 onSeek = { viewModel.onPageChanged(it) },
                 onNextChapter = { viewModel.nextChapter() },
                 onPrevChapter = { viewModel.previousChapter() },
+                onToggleBookmark = viewModel::toggleBookmark,
                 onToggleMode = {
                     viewModel.setReaderMode(
                         if (readerMode == ReaderMode.WEBTOON) ReaderMode.PAGED else ReaderMode.WEBTOON,
@@ -181,6 +199,13 @@ fun ReaderScreen(
                 },
             )
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 148.dp),
+        )
     }
 }
 
@@ -246,9 +271,11 @@ private fun ReaderBottomBar(
     canGoNext: Boolean,
     canGoPrev: Boolean,
     readerMode: ReaderMode,
+    isBookmarked: Boolean,
     onSeek: (Int) -> Unit,
     onNextChapter: () -> Unit,
     onPrevChapter: () -> Unit,
+    onToggleBookmark: () -> Unit,
     onToggleMode: () -> Unit,
 ) {
     Column(
@@ -282,6 +309,15 @@ private fun ReaderBottomBar(
                         if (readerMode == ReaderMode.WEBTOON) R.string.reader_mode_paged else R.string.reader_mode_webtoon,
                     ),
                     tint = Color.White,
+                )
+            }
+            IconButton(onClick = onToggleBookmark) {
+                Icon(
+                    imageVector = if (isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                    contentDescription = stringResource(
+                        if (isBookmarked) R.string.reader_bookmark_remove else R.string.reader_bookmark_add,
+                    ),
+                    tint = if (isBookmarked) MaterialTheme.colorScheme.primary else Color.White,
                 )
             }
         }

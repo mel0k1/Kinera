@@ -16,10 +16,14 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.FolderZip
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
@@ -31,6 +35,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -38,15 +43,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.kinera.app.R
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
@@ -72,14 +81,22 @@ fun ExploreScreen(
     val state by viewModel.state.collectAsState()
     val tab by viewModel.tab.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
+    val folderImport by viewModel.folderImport.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    var importMenuOpen by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
         if (uris.isNotEmpty()) viewModel.importArchives(uris)
+    }
+
+    val folderPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri != null) viewModel.importFolder(uri)
     }
 
     val importText = importResult?.let { result ->
@@ -101,6 +118,19 @@ fun ExploreScreen(
         }
     }
 
+    val folderImportText = when (folderImport) {
+        FolderSourceStorage.ImportResult.Added -> context.getString(R.string.local_folder_added)
+        FolderSourceStorage.ImportResult.Exists -> context.getString(R.string.local_folder_exists)
+        FolderSourceStorage.ImportResult.Failed -> context.getString(R.string.local_folder_failed)
+        null -> null
+    }
+    LaunchedEffect(folderImportText) {
+        if (folderImportText != null) {
+            snackbarHostState.showSnackbar(folderImportText)
+            viewModel.consumeFolderImport()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -118,10 +148,17 @@ fun ExploreScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (tab == ExploreTab.Local) {
-                ExtendedFloatingActionButton(
-                    onClick = { picker.launch(CBZ_MIME_TYPES) },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.local_import)) },
+                ImportFabMenu(
+                    expanded = importMenuOpen,
+                    onToggle = { importMenuOpen = !importMenuOpen },
+                    onImportArchives = {
+                        importMenuOpen = false
+                        picker.launch(CBZ_MIME_TYPES)
+                    },
+                    onImportFolder = {
+                        importMenuOpen = false
+                        folderPicker.launch(null)
+                    },
                 )
             }
         },
@@ -262,6 +299,42 @@ private fun TabSelector(
                 },
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ImportFabMenu(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onImportArchives: () -> Unit,
+    onImportFolder: () -> Unit,
+) {
+    FloatingActionButtonMenu(
+        expanded = expanded,
+        button = {
+            ToggleFloatingActionButton(
+                checked = expanded,
+                onCheckedChange = { onToggle() },
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    modifier = Modifier.rotate(if (expanded) 45f else 0f),
+                )
+            }
+        },
+    ) {
+        FloatingActionButtonMenuItem(
+            onClick = onImportArchives,
+            icon = { Icon(Icons.Rounded.FolderZip, contentDescription = null) },
+            text = { Text(stringResource(R.string.local_import)) },
+        )
+        FloatingActionButtonMenuItem(
+            onClick = onImportFolder,
+            icon = { Icon(Icons.Rounded.PhotoLibrary, contentDescription = null) },
+            text = { Text(stringResource(R.string.local_import_folder)) },
+        )
     }
 }
 

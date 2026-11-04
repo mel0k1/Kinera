@@ -10,10 +10,13 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.kinera.app.BuildConfig
 import org.kinera.app.data.downloads.DownloadStorage
 import org.kinera.app.data.local.LibraryDatabase
+import org.kinera.app.data.local.dao.BookmarksDao
 import org.kinera.app.data.local.dao.CategoriesDao
 import org.kinera.app.data.local.dao.DownloadsDao
 import org.kinera.app.data.local.dao.FavouritesDao
 import org.kinera.app.data.local.dao.HistoryDao
+import org.kinera.app.data.localsource.FolderMangaSource
+import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.LocalMangaSource
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.mangadex.MangaDexApi
@@ -86,11 +89,13 @@ val dataModule = module {
     single { MangaDexSource(get()) }
     single { LocalSourceStorage(androidContext()) }
     single { LocalMangaSource(get()) }
-    single { CatalogRepository(get(), get()) }
+    single { FolderSourceStorage(androidContext()) }
+    single { FolderMangaSource(get()) }
+    single { CatalogRepository(get(), get(), get()) }
 
     single {
         Room.databaseBuilder(androidContext(), LibraryDatabase::class.java, "kinera_library.db")
-            .addMigrations(LibraryDatabase.MIGRATION_1_2)
+            .addMigrations(LibraryDatabase.MIGRATION_1_2, LibraryDatabase.MIGRATION_2_3)
             .build()
     }
 
@@ -98,7 +103,8 @@ val dataModule = module {
     single<HistoryDao> { get<LibraryDatabase>().historyDao() }
     single<CategoriesDao> { get<LibraryDatabase>().categoriesDao() }
     single<DownloadsDao> { get<LibraryDatabase>().downloadsDao() }
-    single { LibraryRepository(get(), get(), get(), get()) }
+    single<BookmarksDao> { get<LibraryDatabase>().bookmarksDao() }
+    single { LibraryRepository(get(), get(), get(), get(), get()) }
 
     single { DownloadStorage(androidContext()) }
     single {
@@ -125,8 +131,8 @@ val uiModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::DownloadsViewModel)
     viewModel { (mangaId: String) -> DetailsViewModel(get(), get(), get(), mangaId) }
-    viewModel { (mangaId: String, chapterId: String) ->
-        ReaderViewModel(get(), get(), get(), get(), mangaId, chapterId)
+    viewModel { (mangaId: String, chapterId: String, startPage: Int) ->
+        ReaderViewModel(get(), get(), get(), get(), mangaId, chapterId, startPage)
     }
 }
 

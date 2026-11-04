@@ -78,12 +78,23 @@
 
     <string name="explore_local">Локально</string>
     <string name="local_import">Импорт CBZ</string>
+    <string name="local_import_folder">Добавить папку</string>
     <string name="local_empty">Нет локальных комиксов</string>
-    <string name="local_empty_hint">Импортируйте CBZ-архивы — они останутся на устройстве для офлайн-чтения</string>
+    <string name="local_empty_hint">Импортируйте CBZ-архивы или папки с картинками — они останутся на устройстве для офлайн-чтения</string>
     <string name="local_imported">Импортировано: %1$d</string>
     <string name="local_import_mixed">Импортировано: %1$d, пропущено: %2$d (уже добавлено)</string>
     <string name="local_import_skipped">Пропущено: %1$d уже добавлено</string>
     <string name="local_import_failed">Не удалось импортировать выбранные файлы</string>
+    <string name="local_folder_added">Папка добавлена</string>
+    <string name="local_folder_exists">Эта папка уже в библиотеке</string>
+    <string name="local_folder_failed">Не удалось добавить выбранную папку</string>
+
+    <string name="reader_bookmark_add">Добавить закладку</string>
+    <string name="reader_bookmark_remove">Убрать закладку</string>
+    <string name="bookmark_added">Страница в закладках</string>
+    <string name="bookmark_removed">Закладка убрана</string>
+    <string name="details_bookmarks">Закладки</string>
+    <string name="details_bookmark_page">Страница %1$d</string>
 
     <string name="settings_title">Настройки</string>
     <string name="settings_appearance">Внешний вид</string>

@@ -27,7 +27,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object SettingsRoute
 @Serializable data object SearchRoute
 @Serializable data class MangaRoute(val mangaId: String)
-@Serializable data class ReaderRoute(val mangaId: String, val chapterId: String)
+@Serializable data class ReaderRoute(val mangaId: String, val chapterId: String, val page: Int = 0)
 
 val topLevelRoutes = listOf(LibraryRoute, ExploreRoute, DownloadsRoute, HistoryRoute, SettingsRoute)
 
@@ -81,8 +81,8 @@ fun KineraNavHost(
             DetailsScreen(
                 mangaId = route.mangaId,
                 onBack = { navController.popBackStack() },
-                onReadChapter = { _, chapter ->
-                    navController.navigate(ReaderRoute(route.mangaId, chapter.id))
+                onReadChapter = { _, chapter, page ->
+                    navController.navigate(ReaderRoute(route.mangaId, chapter.id, page))
                 },
             )
         }
@@ -91,6 +91,7 @@ fun KineraNavHost(
             ReaderScreen(
                 mangaId = route.mangaId,
                 chapterId = route.chapterId,
+                startPage = route.page,
                 onBack = { navController.popBackStack() },
             )
         }

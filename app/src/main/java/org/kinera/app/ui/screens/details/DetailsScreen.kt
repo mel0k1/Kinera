@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
@@ -63,6 +64,7 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaState
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.local.entity.BookmarkEntity
 import org.kinera.app.data.local.entity.DownloadEntity
 import org.kinera.app.data.local.entity.DownloadState
 import org.kinera.app.ui.components.CoverImage
@@ -78,7 +80,7 @@ import java.util.Date
 fun DetailsScreen(
     mangaId: String,
     onBack: () -> Unit,
-    onReadChapter: (Manga, MangaChapter) -> Unit,
+    onReadChapter: (Manga, MangaChapter, Int) -> Unit,
     viewModel: DetailsViewModel = koinViewModel(parameters = { parametersOf(mangaId) }),
 ) {
     val mangaState by viewModel.manga.collectAsState()
@@ -86,6 +88,7 @@ fun DetailsScreen(
     val isFavorite by viewModel.isFavorite.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val downloadStates by viewModel.downloadStates.collectAsState()
+    val bookmarks by viewModel.bookmarks.collectAsState()
     val message by viewModel.message.collectAsState()
     var expanded by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
@@ -149,11 +152,27 @@ fun DetailsScreen(
                                     }
                                 }
                             }
+                            if (bookmarks.isNotEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.details_bookmarks),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                bookmarks.forEach { bookmark ->
+                                    BookmarkRow(
+                                        bookmark = bookmark,
+                                        onOpen = {
+                                            chapters.firstOrNull { it.id == bookmark.chapterId }
+                                                ?.let { chapter -> onReadChapter(manga, chapter, bookmark.page) }
+                                        },
+                                        onRemove = { viewModel.deleteBookmark(bookmark) },
+                                    )
+                                }
+                            }
                             val continueChapter = continueChapter(chapters, progress?.chapterId)
                             Button(
                                 onClick = {
                                     val chapter = continueChapter ?: chapters.firstOrNull()
-                                    if (chapter != null) onReadChapter(manga, chapter)
+                                    if (chapter != null) onReadChapter(manga, chapter, 0)
                                 },
                                 enabled = chapters.isNotEmpty(),
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -170,19 +189,24 @@ fun DetailsScreen(
                                     },
                                 )
                             }
-                            Text(
-                                text = stringResource(R.string.details_chapters),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            if (manga.source != org.kinera.app.core.model.MangaSource.LOCAL) {
-                                Spacer(Modifier.weight(1f))
-                                IconButton(onClick = viewModel::downloadAll) {
-                                    Icon(
-                                        Icons.Rounded.Download,
-                                        contentDescription = stringResource(R.string.details_download_all),
+                            val chaptersHeader: @Composable () -> Unit = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = stringResource(R.string.details_chapters),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f),
                                     )
+                                    if (manga.source != org.kinera.app.core.model.MangaSource.LOCAL) {
+                                        IconButton(onClick = viewModel::downloadAll) {
+                                            Icon(
+                                                Icons.Rounded.Download,
+                                                contentDescription = stringResource(R.string.details_download_all),
+                                            )
+                                        }
+                                    }
                                 }
                             }
+                            chaptersHeader()
                         }
                     }
                     if (chapters.isEmpty()) {
@@ -202,7 +226,7 @@ fun DetailsScreen(
                                 isCurrent = chapter.id == progress?.chapterId,
                                 isRead = isRead,
                                 download = if (manga.source == org.kinera.app.core.model.MangaSource.LOCAL) null else downloadStates[chapter.id],
-                                onClick = { onReadChapter(manga, chapter) },
+                                onClick = { onReadChapter(manga, chapter, 0) },
                                 onDownload = { viewModel.downloadChapter(chapter) },
                                 onCancel = { viewModel.cancelDownload(chapter.id) },
                                 onDelete = { confirmDelete = chapter.id },
@@ -308,6 +332,55 @@ private fun MangaHeader(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkRow(
+    bookmark: BookmarkEntity,
+    onOpen: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.Bookmark,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(start = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = bookmark.chapterLabel,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(
+                    R.string.details_bookmark_page,
+                    bookmark.page + 1,
+                ) + " · " + DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(bookmark.createdAt)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onRemove) {
+            Icon(
+                Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.reader_bookmark_remove),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

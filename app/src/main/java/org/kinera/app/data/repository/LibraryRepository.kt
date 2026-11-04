@@ -4,10 +4,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import org.kinera.app.core.model.Manga
+import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaSource
+import org.kinera.app.data.local.dao.BookmarksDao
 import org.kinera.app.data.local.dao.CategoriesDao
 import org.kinera.app.data.local.dao.FavouritesDao
 import org.kinera.app.data.local.dao.HistoryDao
+import org.kinera.app.data.local.entity.BookmarkEntity
 import org.kinera.app.data.local.entity.CategoryEntity
 import org.kinera.app.data.local.entity.FavouriteEntity
 import org.kinera.app.data.local.entity.HistoryEntity
@@ -22,6 +25,7 @@ class LibraryRepository(
     private val favouritesDao: FavouritesDao,
     private val categoriesDao: CategoriesDao,
     private val historyDao: HistoryDao,
+    private val bookmarksDao: BookmarksDao,
     private val json: Json,
 ) {
 
@@ -97,6 +101,43 @@ class LibraryRepository(
     suspend fun removeHistory(mangaId: String) = historyDao.delete(mangaId)
 
     suspend fun clearHistory() = historyDao.clear()
+
+    fun bookmarks(mangaId: String): Flow<List<BookmarkEntity>> = bookmarksDao.observeForManga(mangaId)
+
+    fun observeBookmark(mangaId: String, chapterId: String, page: Int): Flow<Boolean> =
+        bookmarksDao.observeContains(mangaId, chapterId, page)
+
+    /** Adds a bookmark for the page; toggling an existing one removes it. */
+    suspend fun toggleBookmark(
+        manga: Manga,
+        chapter: MangaChapter,
+        page: Int,
+        pageUrl: String?,
+    ): Boolean {
+        val existing = bookmarksDao.get(manga.id, chapter.id, page)
+        return if (existing == null) {
+            bookmarksDao.insert(
+                BookmarkEntity(
+                    mangaId = manga.id,
+                    chapterId = chapter.id,
+                    page = page,
+                    sourceId = manga.source.id,
+                    title = manga.title,
+                    coverUrl = manga.coverUrl,
+                    chapterLabel = chapter.label,
+                    pageUrl = pageUrl,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
+            true
+        } else {
+            bookmarksDao.delete(existing.mangaId, existing.chapterId, existing.page)
+            false
+        }
+    }
+
+    suspend fun deleteBookmark(bookmark: BookmarkEntity) =
+        bookmarksDao.delete(bookmark.mangaId, bookmark.chapterId, bookmark.page)
 
     private inline fun <T, R> Flow<List<T>>.mapList(crossinline transform: (T) -> R): Flow<List<R>> =
         map { list -> list.map(transform) }

@@ -3,10 +3,16 @@ package org.kinera.app.ui.screens.reader
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.kinera.app.R
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaPage
@@ -25,6 +31,7 @@ class ReaderViewModel(
     private val settings: SettingsRepository,
     private val mangaId: String,
     private val chapterId: String,
+    startPage: Int,
 ) : ViewModel() {
 
     private val _manga = MutableStateFlow<Manga?>(null)
@@ -50,6 +57,28 @@ class ReaderViewModel(
 
     private val _webtoonZoom = MutableStateFlow(true)
     val webtoonZoom: StateFlow<Boolean> = _webtoonZoom.asStateFlow()
+
+    /** Bookmark jump target, applied once and then cleared. */
+    private var pendingStartPage = startPage
+
+    /** Whether the page on screen is bookmarked right now. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val isBookmarked: StateFlow<Boolean> = combine(_currentChapterIndex, _currentPage) { index, page ->
+        index to page
+    }
+        .flatMapLatest { (index, page) ->
+            val chapter = _chapters.value.getOrNull(index)
+            if (chapter == null) {
+                flowOf(false)
+            } else {
+                library.observeBookmark(mangaId, chapter.id, page)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** One-shot snackbar message, consumed by the screen. */
+    private val _message = MutableStateFlow<Int?>(null)
+    val message: StateFlow<Int?> = _message.asStateFlow()
 
     private var lastSavedPage = -1
 
@@ -89,6 +118,21 @@ class ReaderViewModel(
     fun retryPages() {
         val chapter = _chapters.value.getOrNull(_currentChapterIndex.value) ?: return
         loadChapter(chapter)
+    }
+
+    fun toggleBookmark() {
+        val chapter = _chapters.value.getOrNull(_currentChapterIndex.value) ?: return
+        val manga = _manga.value ?: return
+        val page = _currentPage.value
+        val pageUrl = (_pages.value as? UiState.Success)?.data?.getOrNull(page)?.url
+        viewModelScope.launch {
+            val added = library.toggleBookmark(manga, chapter, page, pageUrl)
+            _message.value = if (added) R.string.bookmark_added else R.string.bookmark_removed
+        }
+    }
+
+    fun consumeMessage() {
+        _message.value = null
     }
 
     fun openChapter(index: Int) {
@@ -133,7 +177,12 @@ class ReaderViewModel(
                     } else {
                         _pages.value = UiState.Success(list)
                         val saved = runCatching { library.getProgress(mangaId) }.getOrNull()
-                        val resumeAt = if (chapter.id == saved?.chapterId) saved.page else 0
+                        val resumeAt = when {
+                            pendingStartPage > 0 -> pendingStartPage
+                            chapter.id == saved?.chapterId -> saved.page
+                            else -> 0
+                        }
+                        pendingStartPage = 0
                         _currentPage.value = resumeAt.coerceIn(0, list.size - 1)
                         saveProgress(_currentPage.value)
                     }
