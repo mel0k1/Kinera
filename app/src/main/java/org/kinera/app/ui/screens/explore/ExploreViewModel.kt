@@ -8,15 +8,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.kinera.app.core.model.Manga
+import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.ImportResult
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.repository.CatalogRepository
+import org.kinera.app.data.settings.SettingsRepository
 
 sealed interface ExploreTab {
     data object Popular : ExploreTab
@@ -28,10 +31,15 @@ class ExploreViewModel(
     private val catalog: CatalogRepository,
     private val localStorage: LocalSourceStorage,
     private val folderStorage: FolderSourceStorage,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ExploreTab>(ExploreTab.Popular)
     val tab: StateFlow<ExploreTab> = _tab.asStateFlow()
+
+    /** Catalog source the Popular / Latest tabs read from. */
+    private val _source = MutableStateFlow(MangaSource.MANGADEX)
+    val source: StateFlow<MangaSource> = _source.asStateFlow()
 
     private val _items = MutableStateFlow<List<Manga>>(emptyList())
     val items: StateFlow<List<Manga>> = _items.asStateFlow()
@@ -48,6 +56,17 @@ class ExploreViewModel(
         folderStorage.library,
     ) { archives, folders -> (archives + folders).sortedBy { it.title.lowercase() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Online sources available right now: MangaDex plus any configured servers. */
+    val availableSources: StateFlow<List<MangaSource>> = settings.snapshot
+        .map { current ->
+            buildList {
+                add(MangaSource.MANGADEX)
+                if (current.komga.isConfigured) add(MangaSource.KOMGA)
+                if (current.suwayomi.isConfigured) add(MangaSource.SUWAYOMI)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, listOf(MangaSource.MANGADEX))
 
     /** One-shot result of the latest import, consumed by the screen. */
     private val _importResult = MutableStateFlow<ImportResult?>(null)
@@ -69,6 +88,15 @@ class ExploreViewModel(
         } else {
             reload()
         }
+    }
+
+    fun selectSource(source: MangaSource) {
+        if (source == _source.value || source == MangaSource.LOCAL) return
+        _source.value = source
+        if (_tab.value == ExploreTab.Local) {
+            _tab.value = ExploreTab.Popular
+        }
+        reload()
     }
 
     fun reload() {
@@ -116,8 +144,8 @@ class ExploreViewModel(
         viewModelScope.launch {
             runCatching {
                 when (_tab.value) {
-                    ExploreTab.Popular -> catalog.popular(offset = nextOffset)
-                    ExploreTab.Latest -> catalog.latest(offset = nextOffset)
+                    ExploreTab.Popular -> catalog.popular(source = _source.value, offset = nextOffset)
+                    ExploreTab.Latest -> catalog.latest(source = _source.value, offset = nextOffset)
                     ExploreTab.Local -> error("Local archive list is driven by storage")
                 }
             }.onSuccess { page ->

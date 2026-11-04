@@ -55,9 +55,11 @@ class DownloadRepository(
                     error = null,
                 ),
             )
+            // REPLACE, not KEEP: a previously failed work request stays in the
+            // queue and KEEP would refuse to schedule a fresh one.
             workManager().enqueueUniqueWork(
                 chapter.id,
-                ExistingWorkPolicy.KEEP,
+                ExistingWorkPolicy.REPLACE,
                 buildRequest(manga.id, chapter.id),
             )
         }

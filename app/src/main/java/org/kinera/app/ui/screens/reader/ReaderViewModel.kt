@@ -100,6 +100,9 @@ class ReaderViewModel(
                 val safeIndex = index.coerceAtLeast(0)
                 _currentChapterIndex.value = safeIndex
                 _chapters.value.getOrNull(safeIndex)?.let(::loadChapter)
+            }.onFailure { failure ->
+                // Surface the failure instead of spinning forever.
+                _pages.value = UiState.Error(failure.message)
             }
         }
     }

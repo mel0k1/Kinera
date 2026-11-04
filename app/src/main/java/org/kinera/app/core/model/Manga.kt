@@ -1,5 +1,8 @@
 package org.kinera.app.core.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Manga(
     val id: String,
     val source: MangaSource,

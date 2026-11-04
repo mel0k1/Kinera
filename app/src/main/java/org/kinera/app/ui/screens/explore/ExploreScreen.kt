@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FolderZip
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
@@ -54,6 +56,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.kinera.app.R
 import org.kinera.app.core.model.Manga
+import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.ui.components.EmptyState
@@ -82,6 +85,8 @@ fun ExploreScreen(
     val tab by viewModel.tab.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
     val folderImport by viewModel.folderImport.collectAsState()
+    val source by viewModel.source.collectAsState()
+    val sources by viewModel.availableSources.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -188,6 +193,9 @@ fun ExploreScreen(
                         items = items,
                         tab = tab,
                         hasNext = viewModel.hasNext,
+                        sources = sources,
+                        source = source,
+                        onSourceSelect = viewModel::selectSource,
                         onTabSwitch = viewModel::switchTab,
                         onLoadMore = viewModel::loadMore,
                         onMangaClick = onMangaClick,
@@ -237,6 +245,9 @@ private fun ExploreFeed(
     items: List<Manga>,
     tab: ExploreTab,
     hasNext: Boolean,
+    sources: List<MangaSource>,
+    source: MangaSource,
+    onSourceSelect: (MangaSource) -> Unit,
     onTabSwitch: (ExploreTab) -> Unit,
     onLoadMore: () -> Unit,
     onMangaClick: (Manga) -> Unit,
@@ -262,6 +273,15 @@ private fun ExploreFeed(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             TabSelector(tab = tab, onTabSwitch = onTabSwitch)
+        }
+        if (sources.size > 1) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                SourceChips(
+                    sources = sources,
+                    selected = source,
+                    onSelect = onSourceSelect,
+                )
+            }
         }
         items(items, key = { it.id }) { manga ->
             MangaCard(manga = manga, onClick = { onMangaClick(manga) })
@@ -304,6 +324,27 @@ private fun TabSelector(
                         },
                     )
                 },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourceChips(
+    sources: List<MangaSource>,
+    selected: MangaSource,
+    onSelect: (MangaSource) -> Unit,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        items(sources.size) { index ->
+            val source = sources[index]
+            FilterChip(
+                selected = source == selected,
+                onClick = { onSelect(source) },
+                label = { Text(source.title) },
             )
         }
     }

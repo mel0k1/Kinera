@@ -15,6 +15,8 @@ import org.kinera.app.data.local.dao.CategoriesDao
 import org.kinera.app.data.local.dao.DownloadsDao
 import org.kinera.app.data.local.dao.FavouritesDao
 import org.kinera.app.data.local.dao.HistoryDao
+import org.kinera.app.data.komga.KomgaApi
+import org.kinera.app.data.komga.KomgaSource
 import org.kinera.app.data.localsource.FolderMangaSource
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.LocalMangaSource
@@ -24,7 +26,10 @@ import org.kinera.app.data.mangadex.MangaDexSource
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.repository.DownloadRepository
 import org.kinera.app.data.repository.LibraryRepository
+import org.kinera.app.data.selfhost.SelfHostAuthInterceptor
 import org.kinera.app.data.settings.SettingsRepository
+import org.kinera.app.data.suwayomi.SuwayomiApi
+import org.kinera.app.data.suwayomi.SuwayomiSource
 import org.kinera.app.ui.screens.details.DetailsViewModel
 import org.kinera.app.ui.screens.downloads.DownloadsViewModel
 import org.kinera.app.ui.screens.explore.ExploreViewModel
@@ -44,6 +49,7 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 private const val MANGADEX_BASE_URL = "https://api.mangadex.org/"
+private const val PLACEHOLDER_BASE_URL = "http://localhost/"
 
 val dataModule = module {
     single {
@@ -74,6 +80,7 @@ val dataModule = module {
                     HttpLoggingInterceptor.Level.NONE
                 }
             })
+            .addInterceptor(get<SelfHostAuthInterceptor>())
             .build()
     }
 
@@ -86,12 +93,35 @@ val dataModule = module {
             .create(MangaDexApi::class.java)
     }
 
+    single { SettingsRepository(androidContext()) }
+    single { SelfHostAuthInterceptor(get()) }
+
+    single {
+        Retrofit.Builder()
+            .baseUrl(PLACEHOLDER_BASE_URL)
+            .client(get<OkHttpClient>())
+            .addConverterFactory(get<Json>().asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(KomgaApi::class.java)
+    }
+
+    single {
+        Retrofit.Builder()
+            .baseUrl(PLACEHOLDER_BASE_URL)
+            .client(get<OkHttpClient>())
+            .addConverterFactory(get<Json>().asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(SuwayomiApi::class.java)
+    }
+
     single { MangaDexSource(get()) }
+    single { KomgaSource(get(), get()) }
+    single { SuwayomiSource(get(), get(), get()) }
     single { LocalSourceStorage(androidContext()) }
     single { LocalMangaSource(get()) }
     single { FolderSourceStorage(androidContext()) }
     single { FolderMangaSource(get()) }
-    single { CatalogRepository(get(), get(), get()) }
+    single { CatalogRepository(get(), get(), get(), get(), get()) }
 
     single {
         Room.databaseBuilder(androidContext(), LibraryDatabase::class.java, "kinera_library.db")
@@ -110,8 +140,6 @@ val dataModule = module {
     single {
         DownloadRepository(androidContext(), get(), get())
     }
-
-    single { SettingsRepository(androidContext()) }
 
     single {
         KineraWorkerFactory(

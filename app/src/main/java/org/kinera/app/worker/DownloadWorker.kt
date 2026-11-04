@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.CancellationException
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.kinera.app.BuildConfig
 import org.kinera.app.data.downloads.DownloadStorage
 import org.kinera.app.data.local.dao.DownloadsDao
 import org.kinera.app.data.local.entity.DownloadState
@@ -79,7 +80,7 @@ class DownloadWorker(
         const val TAG = "kinera_download"
         const val KEY_MANGA_ID = "manga_id"
         const val KEY_CHAPTER_ID = "chapter_id"
-        const val USER_AGENT = "Kinera/0.1.0 (github.com/mel0k1/Kinera)"
+        val USER_AGENT = "Kinera/${BuildConfig.VERSION_NAME} (github.com/mel0k1/Kinera)"
     }
 }
 

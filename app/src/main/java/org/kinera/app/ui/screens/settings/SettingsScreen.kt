@@ -4,19 +4,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -27,16 +32,21 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Contrast
+import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.StayCurrentLandscape
@@ -44,6 +54,8 @@ import androidx.compose.material.icons.rounded.ZoomIn
 import org.kinera.app.BuildConfig
 import org.kinera.app.R
 import org.kinera.app.data.settings.ReaderMode
+import org.kinera.app.data.settings.ServerConnection
+import org.kinera.app.data.settings.ServerId
 import org.kinera.app.data.settings.ThemeMode
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -163,6 +175,23 @@ fun SettingsScreen(
             )
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
+            SectionHeader(stringResource(R.string.settings_servers), Icons.Rounded.Dns)
+
+            ServerCard(
+                title = stringResource(R.string.settings_server_komga),
+                hint = stringResource(R.string.settings_server_komga_hint),
+                connection = settings.komga,
+                onSave = { viewModel.saveServer(ServerId.KOMGA, it) },
+            )
+
+            ServerCard(
+                title = stringResource(R.string.settings_server_suwayomi),
+                hint = stringResource(R.string.settings_server_suwayomi_hint),
+                connection = settings.suwayomi,
+                onSave = { viewModel.saveServer(ServerId.SUWAYOMI, it) },
+            )
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
             SectionHeader(stringResource(R.string.settings_about), Icons.Rounded.Code)
 
             AboutRow(
@@ -221,9 +250,86 @@ private fun SectionHeader(text: String, icon: ImageVector) {
     }
 }
 
+/**
+ * One self-hosted server: URL, optional login and password, saved on the
+ * explicit Save action so partial edits never break the live connection.
+ */
 @Composable
-private fun SwitchRow(
-    icon: ImageVector,
+private fun ServerCard(
+    title: String,
+    hint: String,
+    connection: ServerConnection,
+    onSave: (ServerConnection) -> Unit,
+) {
+    var url by remember(connection.url) { mutableStateOf(connection.url) }
+    var user by remember(connection.user) { mutableStateOf(connection.user) }
+    var password by remember(connection.password) { mutableStateOf(connection.password) }
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = url,
+                onValueChange = { url = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.settings_server_url)) },
+                placeholder = { Text("https://komga.example.org") },
+                singleLine = true,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = user,
+                onValueChange = { user = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.settings_server_login)) },
+                singleLine = true,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.settings_server_password)) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (connection.isConfigured) {
+                    Text(
+                        text = stringResource(R.string.settings_server_connected),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(end = 12.dp),
+                    )
+                }
+                FilledTonalButton(
+                    onClick = { onSave(ServerConnection(url = url, user = user, password = password)) },
+                ) {
+                    Text(stringResource(R.string.settings_server_save))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(    icon: ImageVector,
     title: String,
     subtitle: String,
     checked: Boolean,

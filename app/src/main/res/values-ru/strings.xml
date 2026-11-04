@@ -107,6 +107,21 @@
 
     <string name="settings_title">Настройки</string>
     <string name="settings_subtitle">Настройте Kinera под себя</string>
+    <!-- Settings -->
+    <string name="settings_servers">Серверы</string>
+    <string name="settings_server_komga">Komga</string>
+    <string name="settings_server_komga_hint">Самостоятельно размещаемый сервер комиксов (komga.org)</string>
+    <string name="settings_server_suwayomi">Suwayomi</string>
+    <string name="settings_server_suwayomi_hint">Самостоятельно размещаемый сервер Tachiyomi (suwayomi.com)</string>
+    <string name="settings_server_url">Адрес сервера</string>
+    <string name="settings_server_login">Логин (необязательно)</string>
+    <string name="settings_server_password">Пароль (необязательно)</string>
+    <string name="settings_server_save">Сохранить</string>
+    <string name="settings_server_connected">Подключено</string>
+
+    <!-- Sources -->
+    <string name="source_unconfigured">Сначала настройте сервер в настройках</string>
+
     <string name="settings_appearance">Внешний вид</string>
     <string name="settings_theme_mode">Тема</string>
     <string name="settings_theme_system">Системная</string>

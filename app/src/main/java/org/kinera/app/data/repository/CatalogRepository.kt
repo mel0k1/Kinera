@@ -3,46 +3,78 @@ package org.kinera.app.data.repository
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaPage
+import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.model.Paged
+import org.kinera.app.data.komga.KomgaSource
 import org.kinera.app.data.localsource.FolderMangaSource
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.LocalMangaSource
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.mangadex.MangaDexSource
+import org.kinera.app.data.suwayomi.SuwayomiSource
 
 /**
  * Single entry point to all catalog sources. Manga and chapter ids carry a
- * prefix for the local sources ("local:" for CBZ archives, "lfold:" for
- * folders of images), everything else goes to MangaDex. More online sources
- * can slot in behind the same calls later.
+ * prefix for every source except MangaDex ("komga:" for Komga, "swyd:" for
+ * Suwayomi, "local:" for CBZ archives, "lfold:" for folders of images),
+ * everything else goes to MangaDex.
  */
-class CatalogRepository(
+open class CatalogRepository(
     private val mangadex: MangaDexSource,
+    private val komga: KomgaSource,
+    private val suwayomi: SuwayomiSource,
     private val local: LocalMangaSource,
     private val folders: FolderMangaSource,
 ) {
 
-    suspend fun popular(offset: Int = 0): Paged<Manga> = mangadex.popular(offset)
+    open suspend fun popular(source: MangaSource = MangaSource.MANGADEX, offset: Int = 0): Paged<Manga> =
+        when (source) {
+            MangaSource.MANGADEX -> mangadex.popular(offset)
+            MangaSource.KOMGA -> komga.popular(offset)
+            MangaSource.SUWAYOMI -> suwayomi.popular(offset)
+            MangaSource.LOCAL -> Paged(emptyList())
+        }
 
-    suspend fun latest(offset: Int = 0): Paged<Manga> = mangadex.latest(offset)
+    open suspend fun latest(source: MangaSource = MangaSource.MANGADEX, offset: Int = 0): Paged<Manga> =
+        when (source) {
+            MangaSource.MANGADEX -> mangadex.latest(offset)
+            MangaSource.KOMGA -> komga.latest(offset)
+            MangaSource.SUWAYOMI -> suwayomi.latest(offset)
+            MangaSource.LOCAL -> Paged(emptyList())
+        }
 
-    suspend fun search(query: String, offset: Int = 0): Paged<Manga> = mangadex.search(query, offset)
+    open suspend fun search(
+        query: String,
+        source: MangaSource = MangaSource.MANGADEX,
+        offset: Int = 0,
+    ): Paged<Manga> = when (source) {
+        MangaSource.MANGADEX -> mangadex.search(query, offset)
+        MangaSource.KOMGA -> komga.search(query, offset)
+        MangaSource.SUWAYOMI -> suwayomi.search(query, offset)
+        MangaSource.LOCAL -> Paged(emptyList())
+    }
 
-    suspend fun details(mangaId: String): Manga = when {
+    open suspend fun details(mangaId: String): Manga = when {
         mangaId.startsWith(LocalSourceStorage.MANGA_ID_PREFIX) -> local.details(mangaId)
         mangaId.startsWith(FolderSourceStorage.MANGA_ID_PREFIX) -> folders.details(mangaId)
+        mangaId.startsWith(KomgaSource.MANGA_ID_PREFIX) -> komga.details(mangaId)
+        mangaId.startsWith(SuwayomiSource.MANGA_ID_PREFIX) -> suwayomi.details(mangaId)
         else -> mangadex.details(mangaId)
     }
 
-    suspend fun chapters(mangaId: String): List<MangaChapter> = when {
+    open suspend fun chapters(mangaId: String): List<MangaChapter> = when {
         mangaId.startsWith(LocalSourceStorage.MANGA_ID_PREFIX) -> local.chapters(mangaId)
         mangaId.startsWith(FolderSourceStorage.MANGA_ID_PREFIX) -> folders.chapters(mangaId)
+        mangaId.startsWith(KomgaSource.MANGA_ID_PREFIX) -> komga.chapters(mangaId)
+        mangaId.startsWith(SuwayomiSource.MANGA_ID_PREFIX) -> suwayomi.chapters(mangaId)
         else -> mangadex.chapters(mangaId)
     }
 
-    suspend fun pages(chapterId: String): List<MangaPage> = when {
+    open suspend fun pages(chapterId: String): List<MangaPage> = when {
         chapterId.startsWith(LocalSourceStorage.CHAPTER_ID_PREFIX) -> local.pages(chapterId)
         chapterId.startsWith(FolderSourceStorage.CHAPTER_ID_PREFIX) -> folders.pages(chapterId)
+        chapterId.startsWith(KomgaSource.CHAPTER_ID_PREFIX) -> komga.pages(chapterId)
+        chapterId.startsWith(SuwayomiSource.CHAPTER_ID_PREFIX) -> suwayomi.pages(chapterId)
         else -> mangadex.pages(chapterId)
     }
 }

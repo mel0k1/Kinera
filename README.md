@@ -6,7 +6,7 @@
 
 # Kinera
 
-A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose and Material 3 Expressive. It reads from the official [MangaDex API](https://api.mangadex.org) and keeps your library on the device. No accounts, no tracking, no bundled content.
+A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose and Material 3 Expressive. It reads from the official [MangaDex API](https://api.mangadex.org), your self-hosted **Komga** or **Suwayomi** server, local CBZ archives — and keeps your library on the device. No accounts, no tracking, no bundled content.
 
 - Android 12+ (API 31)
 - Kotlin 2.4 · Compose · Material 3 Expressive
@@ -14,23 +14,28 @@ A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose an
 
 [Русская версия](README.ru.md)
 
+## Screenshots
+
+Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](https://github.com/takahirom/Roborazzi) (`:app:recordRoborazziDebug`).
+
+| Library | Explore | Details | Reader (dark) |
+| --- | --- | --- | --- |
+| ![Library](art/screenshots/library_light.png) | ![Explore](art/screenshots/explore_light.png) | ![Details](art/screenshots/details_light.png) | ![Reader](art/screenshots/reader_dark.png) |
+
 ## Features
 
 - **Library** — favourites with custom categories, long-press to remove
-- **Explore** — popular and latest titles from MangaDex, endless scroll
+- **Explore** — popular and latest titles from MangaDex, endless scroll, per-source tabs
+- **Sources** — MangaDex out of the box, plus self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically)
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
-- **Search** — debounced title search
+- **Search** — debounced title search with load-more, across every configured source
 - **Reader** — webtoon (continuous scroll) and paged modes, switchable on the fly; pinch-to-zoom and double-tap zoom in both modes; screen stays awake while you read
 - **History** — automatic reading progress, resume where you stopped
 - **Bookmarks** — mark any page from the reader and jump back to it from the manga details
 - **Details** — chapter list with read markers, tags, description
 - **Warm amber identity** — a hand-tuned cream-and-amber theme out of the box; optional wallpaper-based dynamic color in Settings
 - **Expressive motion** — spring-based animation scheme, a floating pill navigation bar whose label unfolds on selection, press-scale feedback on cards, large flexible app bars, wavy progress indicators, morphing favourite toggle, shape-morphing loader and expressive empty states with the Kinera cat
-
-## Screenshots
-
-Coming with the first release build. CI assembles a debug APK on every push, so nothing here is hand-waved — the code builds.
 
 ## Build
 
@@ -57,6 +62,9 @@ org.kinera.app
 ├── core/          domain models, UI state
 ├── data/
 │   ├── mangadex/  Retrofit API, DTOs, MangaDex source
+│   ├── komga/     Komga REST source (self-hosted)
+│   ├── suwayomi/  Suwayomi GraphQL source (self-hosted)
+│   ├── selfhost/  basic-auth interceptor for self-hosted servers
 │   ├── localsource/ CBZ import, scanning and page extraction
 │   ├── downloads/ on-disk storage for downloaded chapters
 │   ├── local/     Room database (favourites, history, categories, downloads)
@@ -74,13 +82,15 @@ UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlin
 
 ## Roadmap
 
-- More catalog sources behind a common interface
+- More online catalog sources
+- Per-source settings (language filters, source picker inside Suwayomi)
 - Beta release with signed builds in Releases
 
 ## Credits and legal
 
 - [Kotatsu](https://github.com/KotatsuApp/Kotatsu) — inspiration and the general idea of a free, open manga reader for Android
 - [MangaDex](https://mangadex.org) — catalog data comes from their public API; Kinera is not affiliated with MangaDex
+- [Komga](https://komga.org) and [Suwayomi](https://suwayomi.com) — supported self-hosted server APIs
 - App icon and logo by [mel0k1](https://github.com/mel0k1)
 
 Kinera does not host or provide any manga. It is a client for a public API, and everything you read belongs to its respective authors and publishers.
