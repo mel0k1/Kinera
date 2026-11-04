@@ -1,14 +1,18 @@
 package org.kinera.app.ui.screens.reader
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -29,7 +34,6 @@ import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,28 +46,35 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import android.app.Activity
-import android.view.WindowManager
 import coil.compose.AsyncImage
 import org.kinera.app.R
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.settings.ReaderMode
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val MAX_ZOOM = 5f
+private const val DOUBLE_TAP_ZOOM = 2.5f
+
 @Composable
 fun ReaderScreen(
     mangaId: String,
@@ -78,6 +89,7 @@ fun ReaderScreen(
     val currentPage by viewModel.currentPage.collectAsState()
     val readerMode by viewModel.readerMode.collectAsState()
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
+    val webtoonZoom by viewModel.webtoonZoom.collectAsState()
 
     var controlsVisible by remember { mutableStateOf(true) }
 
@@ -116,13 +128,14 @@ fun ReaderScreen(
                     )
                 } else {
                     when (readerMode) {
-                        org.kinera.app.data.settings.ReaderMode.WEBTOON -> WebtoonContent(
+                        ReaderMode.WEBTOON -> WebtoonContent(
                             pages = pages.map { it.url },
                             currentPage = currentPage,
+                            zoomEnabled = webtoonZoom,
                             onTap = { controlsVisible = !controlsVisible },
                             onPageChanged = viewModel::onPageChanged,
                         )
-                        org.kinera.app.data.settings.ReaderMode.PAGED -> PagedContent(
+                        ReaderMode.PAGED -> PagedContent(
                             pages = pages.map { it.url },
                             currentPage = currentPage,
                             onTap = { controlsVisible = !controlsVisible },
@@ -163,11 +176,7 @@ fun ReaderScreen(
                 onPrevChapter = { viewModel.previousChapter() },
                 onToggleMode = {
                     viewModel.setReaderMode(
-                        if (readerMode == org.kinera.app.data.settings.ReaderMode.WEBTOON) {
-                            org.kinera.app.data.settings.ReaderMode.PAGED
-                        } else {
-                            org.kinera.app.data.settings.ReaderMode.WEBTOON
-                        },
+                        if (readerMode == ReaderMode.WEBTOON) ReaderMode.PAGED else ReaderMode.WEBTOON,
                     )
                 },
             )
@@ -230,14 +239,13 @@ private fun ReaderTopBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ReaderBottomBar(
     totalPages: Int,
     currentPage: Int,
     canGoNext: Boolean,
     canGoPrev: Boolean,
-    readerMode: org.kinera.app.data.settings.ReaderMode,
+    readerMode: ReaderMode,
     onSeek: (Int) -> Unit,
     onNextChapter: () -> Unit,
     onPrevChapter: () -> Unit,
@@ -269,17 +277,9 @@ private fun ReaderBottomBar(
             }
             IconButton(onClick = onToggleMode) {
                 Icon(
-                    imageVector = if (readerMode == org.kinera.app.data.settings.ReaderMode.WEBTOON) {
-                        Icons.Rounded.MenuBook
-                    } else {
-                        Icons.Rounded.AutoStories
-                    },
+                    imageVector = if (readerMode == ReaderMode.WEBTOON) Icons.Rounded.MenuBook else Icons.Rounded.AutoStories,
                     contentDescription = stringResource(
-                        if (readerMode == org.kinera.app.data.settings.ReaderMode.WEBTOON) {
-                            R.string.reader_mode_paged
-                        } else {
-                            R.string.reader_mode_webtoon
-                        },
+                        if (readerMode == ReaderMode.WEBTOON) R.string.reader_mode_paged else R.string.reader_mode_webtoon,
                     ),
                     tint = Color.White,
                 )
@@ -296,14 +296,39 @@ private fun ReaderBottomBar(
     }
 }
 
+/**
+ * Continuous vertical feed. Pinch zooms the whole strip, two-finger panning
+ * looks around, double tap toggles between fit and zoomed-in. A single
+ * finger still scrolls the list underneath.
+ */
 @Composable
 private fun WebtoonContent(
     pages: List<String>,
     currentPage: Int,
+    zoomEnabled: Boolean,
     onTap: () -> Unit,
     onPageChanged: (Int) -> Unit,
 ) {
     val listState = rememberLazyListState()
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+
+    fun clampOffset(newScale: Float, candidate: Offset): Offset {
+        val maxX = containerSize.width * (newScale - 1f) / 2f
+        val maxY = containerSize.height * (newScale - 1f) / 2f
+        return Offset(candidate.x.coerceIn(-maxX, maxX), candidate.y.coerceIn(-maxY, maxY))
+    }
+
+    val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+        val newScale = (scale * zoomChange).coerceIn(1f, MAX_ZOOM)
+        offset = if (newScale > 1f) {
+            clampOffset(newScale, offset + panChange * newScale)
+        } else {
+            Offset.Zero
+        }
+        scale = newScale
+    }
 
     LaunchedEffect(pages) {
         if (currentPage > 0) listState.scrollToItem(currentPage)
@@ -313,19 +338,47 @@ private fun WebtoonContent(
             .collect { index -> onPageChanged(index) }
     }
 
-    LazyColumn(
-        state = listState,
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .clickable { onTap() },
+            .onSizeChanged { containerSize = it },
     ) {
-        itemsIndexed(pages) { _, url ->
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                }
+                .then(if (zoomEnabled) Modifier.transformable(transformState) else Modifier)
+                .pointerInput(zoomEnabled) {
+                    detectTapGestures(
+                        onTap = { onTap() },
+                        onDoubleTap = {
+                            if (zoomEnabled) {
+                                if (scale > 1f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                } else {
+                                    scale = DOUBLE_TAP_ZOOM
+                                    offset = Offset.Zero
+                                }
+                            }
+                        },
+                    )
+                },
+        ) {
+            itemsIndexed(pages) { _, url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.FillWidth,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -349,15 +402,82 @@ private fun PagedContent(
 
     HorizontalPager(
         state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+    ) { index ->
+        ZoomablePage(
+            model = pages[index],
+            pageIndex = index,
+            onTap = onTap,
+        )
+    }
+}
+
+/**
+ * One page of the paged reader: double tap zooms in and out, pinch and drag
+ * pan the image while zoomed. When the page fits the screen the gestures are
+ * left to the pager, so swiping between pages keeps working.
+ */
+@Composable
+private fun ZoomablePage(
+    model: String,
+    pageIndex: Int,
+    onTap: () -> Unit,
+) {
+    var scale by remember(pageIndex) { mutableFloatStateOf(1f) }
+    var offset by remember(pageIndex) { mutableStateOf(Offset.Zero) }
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    val zoomed = scale > 1.01f
+
+    fun clampOffset(newScale: Float, candidate: Offset): Offset {
+        val maxX = size.width * (newScale - 1f) / 2f
+        val maxY = size.height * (newScale - 1f) / 2f
+        return Offset(candidate.x.coerceIn(-maxX, maxX), candidate.y.coerceIn(-maxY, maxY))
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .clickable { onTap() },
-    ) { index ->
+            .onSizeChanged { size = it },
+    ) {
         AsyncImage(
-            model = pages[index],
+            model = model,
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                }
+                .pointerInput(zoomed) {
+                    if (zoomed) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
+                            offset = if (newScale > 1f) {
+                                clampOffset(newScale, offset + pan * newScale)
+                            } else {
+                                Offset.Zero
+                            }
+                            scale = newScale
+                        }
+                    }
+                }
+                .pointerInput(pageIndex) {
+                    detectTapGestures(
+                        onTap = { onTap() },
+                        onDoubleTap = {
+                            if (zoomed) {
+                                scale = 1f
+                                offset = Offset.Zero
+                            } else {
+                                scale = DOUBLE_TAP_ZOOM
+                                offset = Offset.Zero
+                            }
+                        },
+                    )
+                },
         )
     }
 }

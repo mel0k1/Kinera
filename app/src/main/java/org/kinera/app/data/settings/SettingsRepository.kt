@@ -19,6 +19,7 @@ class SettingsRepository(private val context: Context) {
         val dynamicColors = booleanPreferencesKey("dynamic_colors")
         val readerMode = stringPreferencesKey("reader_mode")
         val keepScreenOn = booleanPreferencesKey("keep_screen_on")
+        val webtoonZoom = booleanPreferencesKey("webtoon_zoom")
     }
 
     val settings: Flow<KineraSettings> = context.dataStore.data.map { prefs ->
@@ -29,6 +30,7 @@ class SettingsRepository(private val context: Context) {
             readerMode = prefs[Keys.readerMode]?.let { runCatching { ReaderMode.valueOf(it) }.getOrNull() }
                 ?: ReaderMode.WEBTOON,
             keepScreenOn = prefs[Keys.keepScreenOn] ?: true,
+            webtoonZoom = prefs[Keys.webtoonZoom] ?: true,
         )
     }
 
@@ -46,5 +48,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setKeepScreenOn(enabled: Boolean) {
         context.dataStore.edit { it[Keys.keepScreenOn] = enabled }
+    }
+
+    suspend fun setWebtoonZoom(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.webtoonZoom] = enabled }
     }
 }

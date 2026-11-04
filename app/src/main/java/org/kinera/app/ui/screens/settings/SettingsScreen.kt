@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.StayCurrentLandscape
+import androidx.compose.material.icons.rounded.ZoomIn
 import org.kinera.app.BuildConfig
 import org.kinera.app.R
 import org.kinera.app.data.settings.ReaderMode
@@ -143,6 +144,14 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_keep_screen_on_summary),
                 checked = settings.keepScreenOn,
                 onCheckedChange = viewModel::setKeepScreenOn,
+            )
+
+            SwitchRow(
+                icon = Icons.Rounded.ZoomIn,
+                title = stringResource(R.string.settings_webtoon_zoom),
+                subtitle = stringResource(R.string.settings_webtoon_zoom_summary),
+                checked = settings.webtoonZoom,
+                onCheckedChange = viewModel::setWebtoonZoom,
             )
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))

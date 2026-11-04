@@ -6,13 +6,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
 import org.kinera.app.core.model.MangaPage
+import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
 import org.kinera.app.data.repository.CatalogRepository
+import org.kinera.app.data.repository.DownloadRepository
 import org.kinera.app.data.repository.LibraryRepository
 import org.kinera.app.data.settings.ReaderMode
 import org.kinera.app.data.settings.SettingsRepository
@@ -20,6 +21,7 @@ import org.kinera.app.data.settings.SettingsRepository
 class ReaderViewModel(
     private val catalog: CatalogRepository,
     private val library: LibraryRepository,
+    private val downloads: DownloadRepository,
     private val settings: SettingsRepository,
     private val mangaId: String,
     private val chapterId: String,
@@ -46,6 +48,9 @@ class ReaderViewModel(
     private val _keepScreenOn = MutableStateFlow(true)
     val keepScreenOn: StateFlow<Boolean> = _keepScreenOn.asStateFlow()
 
+    private val _webtoonZoom = MutableStateFlow(true)
+    val webtoonZoom: StateFlow<Boolean> = _webtoonZoom.asStateFlow()
+
     private var lastSavedPage = -1
 
     init {
@@ -53,6 +58,7 @@ class ReaderViewModel(
             val prefs = settings.settings.first()
             _readerMode.value = prefs.readerMode
             _keepScreenOn.value = prefs.keepScreenOn
+            _webtoonZoom.value = prefs.webtoonZoom
         }
         viewModelScope.launch {
             runCatching {
@@ -111,13 +117,26 @@ class ReaderViewModel(
         _pages.value = UiState.Loading
         _currentPage.value = 0
         viewModelScope.launch {
-            runCatching { catalog.pages(chapter.id) }
+            // Downloaded chapters load straight from disk, everything else
+            // comes from the catalog source.
+            val local = if (chapter.source != MangaSource.LOCAL) {
+                runCatching { downloads.localPages(mangaId, chapter.id) }.getOrNull()
+            } else {
+                null
+            }
+            runCatching {
+                local ?: catalog.pages(chapter.id)
+            }
                 .onSuccess { list ->
-                    _pages.value = UiState.Success(list)
-                    val saved = runCatching { library.getProgress(mangaId) }.getOrNull()
-                    val resumeAt = if (chapter.id == saved?.chapterId) saved.page else 0
-                    _currentPage.value = resumeAt.coerceIn(0, (list.size - 1).coerceAtLeast(0))
-                    saveProgress(_currentPage.value)
+                    if (list.isEmpty()) {
+                        _pages.value = UiState.Error(null)
+                    } else {
+                        _pages.value = UiState.Success(list)
+                        val saved = runCatching { library.getProgress(mangaId) }.getOrNull()
+                        val resumeAt = if (chapter.id == saved?.chapterId) saved.page else 0
+                        _currentPage.value = resumeAt.coerceIn(0, list.size - 1)
+                        saveProgress(_currentPage.value)
+                    }
                 }
                 .onFailure { _pages.value = UiState.Error(it.message) }
         }

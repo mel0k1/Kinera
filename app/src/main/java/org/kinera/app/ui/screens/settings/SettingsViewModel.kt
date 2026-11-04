@@ -22,4 +22,6 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     fun setReaderMode(mode: ReaderMode) = viewModelScope.launch { repository.setReaderMode(mode) }
 
     fun setKeepScreenOn(enabled: Boolean) = viewModelScope.launch { repository.setKeepScreenOn(enabled) }
+
+    fun setWebtoonZoom(enabled: Boolean) = viewModelScope.launch { repository.setWebtoonZoom(enabled) }
 }
