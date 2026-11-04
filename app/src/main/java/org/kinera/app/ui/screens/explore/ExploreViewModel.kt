@@ -1,22 +1,31 @@
 package org.kinera.app.ui.screens.explore
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.localsource.ImportResult
+import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.repository.CatalogRepository
 
 sealed interface ExploreTab {
     data object Popular : ExploreTab
     data object Latest : ExploreTab
+    data object Local : ExploreTab
 }
 
-class ExploreViewModel(private val catalog: CatalogRepository) : ViewModel() {
+class ExploreViewModel(
+    private val catalog: CatalogRepository,
+    private val localStorage: LocalSourceStorage,
+) : ViewModel() {
 
     private val _tab = MutableStateFlow<ExploreTab>(ExploreTab.Popular)
     val tab: StateFlow<ExploreTab> = _tab.asStateFlow()
@@ -30,6 +39,14 @@ class ExploreViewModel(private val catalog: CatalogRepository) : ViewModel() {
     private val _hasNext = MutableStateFlow(false)
     val hasNext: Boolean get() = _hasNext.value
 
+    /** Archives imported from the device, shown on the Local tab. */
+    val localManga: StateFlow<List<Manga>> = localStorage.library
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** One-shot result of the latest import, consumed by the screen. */
+    private val _importResult = MutableStateFlow<ImportResult?>(null)
+    val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
+
     private var nextOffset = 0
     private var loading = false
 
@@ -40,10 +57,19 @@ class ExploreViewModel(private val catalog: CatalogRepository) : ViewModel() {
     fun switchTab(tab: ExploreTab) {
         if (tab == _tab.value) return
         _tab.value = tab
-        reload()
+        if (tab == ExploreTab.Local) {
+            _hasNext.value = false
+            _state.value = UiState.Success(Unit)
+        } else {
+            reload()
+        }
     }
 
     fun reload() {
+        if (_tab.value == ExploreTab.Local) {
+            _state.value = UiState.Success(Unit)
+            return
+        }
         nextOffset = 0
         _items.value = emptyList()
         _state.value = UiState.Loading
@@ -51,8 +77,18 @@ class ExploreViewModel(private val catalog: CatalogRepository) : ViewModel() {
     }
 
     fun loadMore() {
-        if (loading) return
+        if (loading || _tab.value == ExploreTab.Local) return
         loadMore(reset = false)
+    }
+
+    fun importArchives(uris: List<Uri>) {
+        viewModelScope.launch {
+            _importResult.value = localStorage.import(uris)
+        }
+    }
+
+    fun consumeImportResult() {
+        _importResult.value = null
     }
 
     private fun loadMore(reset: Boolean) {
@@ -62,6 +98,7 @@ class ExploreViewModel(private val catalog: CatalogRepository) : ViewModel() {
                 when (_tab.value) {
                     ExploreTab.Popular -> catalog.popular(offset = nextOffset)
                     ExploreTab.Latest -> catalog.latest(offset = nextOffset)
+                    ExploreTab.Local -> error("Local archive list is driven by storage")
                 }
             }.onSuccess { page ->
                 nextOffset = page.offset + page.items.size
