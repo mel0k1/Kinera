@@ -274,7 +274,7 @@ private class FakeCatalog(
     private val mangas: List<Manga>,
     private val pages: List<MangaPage>,
 ) : CatalogRepository(
-    mangadex = MangaDexSource(retrofitOf(MangaDexApi::class.java)),
+    mangadex = MangaDexSource(retrofitOf(MangaDexApi::class.java), SettingsRepository(context)),
     komga = KomgaSource(retrofitOf(KomgaApi::class.java), SettingsRepository(context)),
     suwayomi = SuwayomiSource(
         retrofitOf(SuwayomiApi::class.java),

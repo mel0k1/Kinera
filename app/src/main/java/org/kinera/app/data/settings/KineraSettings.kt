@@ -37,6 +37,12 @@ data class KineraSettings(
     val readerMode: ReaderMode = ReaderMode.WEBTOON,
     val keepScreenOn: Boolean = true,
     val webtoonZoom: Boolean = true,
+    /** Right-to-left page order for the paged reader (manga style). */
+    val readerRtl: Boolean = false,
+    /** MangaDex languages with available chapters, e.g. ["en", "ru"]. Empty = all languages. */
+    val mangadexLanguages: Set<String> = setOf("en", "ru"),
+    /** Preferred source id inside the Suwayomi server; empty = automatic pick. */
+    val suwayomiSourceId: String = "",
     val komga: ServerConnection = ServerConnection(),
     val suwayomi: ServerConnection = ServerConnection(),
 )

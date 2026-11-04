@@ -68,6 +68,22 @@ class ExploreViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, listOf(MangaSource.MANGADEX))
 
+    /** MangaDex chapter languages enabled in Settings; empty means no filter. */
+    val mangadexLanguages: StateFlow<Set<String>> = settings.snapshot
+        .map { it.mangadexLanguages }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, setOf("en", "ru"))
+
+    /** Toggles a MangaDex language chip and refreshes the MangaDex feed. */
+    fun toggleMangadexLanguage(language: String) {
+        val enable = language !in mangadexLanguages.value
+        viewModelScope.launch {
+            settings.setMangadexLanguage(language, enable)
+            if (_source.value == MangaSource.MANGADEX && _tab.value != ExploreTab.Local) {
+                reload()
+            }
+        }
+    }
+
     /** One-shot result of the latest import, consumed by the screen. */
     private val _importResult = MutableStateFlow<ImportResult?>(null)
     val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()

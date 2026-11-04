@@ -9,13 +9,22 @@ import org.kinera.app.core.model.MangaTag
 import org.kinera.app.core.model.Paged
 import org.kinera.app.data.mangadex.dto.MangaDexChapter
 import org.kinera.app.data.mangadex.dto.MangaDexManga
+import org.kinera.app.data.settings.SUPPORTED_LANGUAGES
+import org.kinera.app.data.settings.SettingsRepository
 import java.time.OffsetDateTime
 
 /**
  * Catalog source backed by the official public MangaDex API.
  * The app never hosts content itself; it only talks to api.mangadex.org.
+ *
+ * Chapter languages follow the user preference: catalog lists only manga
+ * with chapters in the enabled languages, the chapter feed only returns
+ * those translations. An empty preference means "no filter".
  */
-class MangaDexSource(private val api: MangaDexApi) {
+class MangaDexSource(
+    private val api: MangaDexApi,
+    private val settings: SettingsRepository,
+) {
 
     val source: MangaSource = MangaSource.MANGADEX
 
@@ -35,7 +44,7 @@ class MangaDexSource(private val api: MangaDexApi) {
         val collected = mutableListOf<MangaDexChapter>()
         var offset = 0
         while (true) {
-            val page = api.feed(mangaId, offset = offset)
+            val page = api.feed(mangaId, offset = offset, languages = enabledLanguages())
             collected += page.data
             offset += page.limit
             if (page.data.isEmpty() || offset >= page.total || page.data.size < page.limit) break
@@ -57,13 +66,34 @@ class MangaDexSource(private val api: MangaDexApi) {
         }
     }
 
+    /**
+     * Languages currently enabled in Settings, lowercase. Empty list makes
+     * Retrofit omit the query parameter, which the API reads as "any language".
+     */
+    private fun enabledLanguages(): List<String> =
+        settings.snapshot.value.mangadexLanguages
+            .filter { it in SUPPORTED_LANGUAGES }
+            .sorted()
+
+    /** Locale order used to pick titles and descriptions: enabled first. */
+    private fun preferredLocales(): List<String> {
+        val enabled = enabledLanguages()
+        return if (enabled.isEmpty()) DEFAULT_LOCALES else enabled + DEFAULT_LOCALES
+    }
+
     private suspend fun list(
         offset: Int,
         limit: Int,
         title: String? = null,
         order: Map<String, String>,
     ): Paged<Manga> {
-        val response = api.listManga(title = title, limit = limit, offset = offset, order = order)
+        val response = api.listManga(
+            title = title,
+            limit = limit,
+            offset = offset,
+            order = order,
+            languages = enabledLanguages(),
+        )
         return Paged(
             items = response.data.map { it.toDomain() },
             offset = response.offset,
@@ -74,6 +104,7 @@ class MangaDexSource(private val api: MangaDexApi) {
 
     private fun MangaDexManga.toDomain(): Manga {
         val attrs = attributes
+        val locales = preferredLocales()
         val cover = relationships.firstOrNull { it.type == "cover_art" }
             ?.attributes?.fileName
         val author = (
@@ -83,11 +114,11 @@ class MangaDexSource(private val api: MangaDexApi) {
         return Manga(
             id = id,
             source = source,
-            title = attrs.title.pick("en", "ru") ?: "Untitled",
-            altTitle = attrs.altTitles.firstNotNullOfOrNull { it.pick("en", "ru") },
+            title = attrs.title.pick(locales) ?: "Untitled",
+            altTitle = attrs.altTitles.firstNotNullOfOrNull { it.pick(locales) },
             coverUrl = cover?.let { "https://uploads.mangadex.org/covers/$id/$it" },
-            description = attrs.description.pick("en", "ru"),
-            tags = attrs.tags.map { MangaTag(id = it.id, title = it.attributes.name.pick("en") ?: "?") },
+            description = attrs.description.pick(locales),
+            tags = attrs.tags.map { MangaTag(id = it.id, title = it.attributes.name.pick(locales) ?: "?") },
             state = mapState(attrs.status),
             author = author,
             chaptersCount = attrs.lastChapter?.toDoubleOrNull()?.toInt() ?: 0,
@@ -117,7 +148,7 @@ class MangaDexSource(private val api: MangaDexApi) {
         OffsetDateTime.parse(raw).toInstant().toEpochMilli()
     }.getOrDefault(0L)
 
-    private fun Map<String, String>?.pick(vararg locales: String): String? {
+    private fun Map<String, String>?.pick(locales: List<String>): String? {
         if (this == null) return null
         locales.firstNotNullOfOrNull { this[it] }?.let { return it }
         return values.firstOrNull { it.isNotBlank() }
@@ -125,5 +156,8 @@ class MangaDexSource(private val api: MangaDexApi) {
 
     companion object {
         const val PAGE_SIZE = 24
+
+        /** Fallback locale order when no language filter is set. */
+        private val DEFAULT_LOCALES = listOf("en", "ru")
     }
 }

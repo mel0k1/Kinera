@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -18,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FolderZip
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,6 +90,7 @@ fun ExploreScreen(
     val folderImport by viewModel.folderImport.collectAsState()
     val source by viewModel.source.collectAsState()
     val sources by viewModel.availableSources.collectAsState()
+    val mangadexLanguages by viewModel.mangadexLanguages.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -195,7 +199,9 @@ fun ExploreScreen(
                         hasNext = viewModel.hasNext,
                         sources = sources,
                         source = source,
+                        mangadexLanguages = mangadexLanguages,
                         onSourceSelect = viewModel::selectSource,
+                        onToggleLanguage = viewModel::toggleMangadexLanguage,
                         onTabSwitch = viewModel::switchTab,
                         onLoadMore = viewModel::loadMore,
                         onMangaClick = onMangaClick,
@@ -247,7 +253,9 @@ private fun ExploreFeed(
     hasNext: Boolean,
     sources: List<MangaSource>,
     source: MangaSource,
+    mangadexLanguages: Set<String>,
     onSourceSelect: (MangaSource) -> Unit,
+    onToggleLanguage: (String) -> Unit,
     onTabSwitch: (ExploreTab) -> Unit,
     onLoadMore: () -> Unit,
     onMangaClick: (Manga) -> Unit,
@@ -280,6 +288,14 @@ private fun ExploreFeed(
                     sources = sources,
                     selected = source,
                     onSelect = onSourceSelect,
+                )
+            }
+        }
+        if (source == MangaSource.MANGADEX) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                LanguageChips(
+                    languages = mangadexLanguages,
+                    onToggle = onToggleLanguage,
                 )
             }
         }
@@ -347,6 +363,41 @@ private fun SourceChips(
                 label = { Text(source.title) },
             )
         }
+    }
+}
+
+/**
+ * MangaDex chapter languages. Both chips off means no language filter —
+ * every translation counts. The choice persists in Settings.
+ */
+@Composable
+private fun LanguageChips(
+    languages: Set<String>,
+    onToggle: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.Language,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        FilterChip(
+            selected = "en" in languages,
+            onClick = { onToggle("en") },
+            label = { Text(stringResource(R.string.language_english)) },
+        )
+        FilterChip(
+            selected = "ru" in languages,
+            onClick = { onToggle("ru") },
+            label = { Text(stringResource(R.string.language_russian)) },
+        )
     }
 }
 

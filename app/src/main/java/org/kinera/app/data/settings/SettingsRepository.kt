@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,9 @@ class SettingsRepository(private val context: Context) {
         val readerMode = stringPreferencesKey("reader_mode")
         val keepScreenOn = booleanPreferencesKey("keep_screen_on")
         val webtoonZoom = booleanPreferencesKey("webtoon_zoom")
+        val readerRtl = booleanPreferencesKey("reader_rtl")
+        val mangadexLanguages = stringSetPreferencesKey("mangadex_languages")
+        val suwayomiSourceId = stringPreferencesKey("suwayomi_source_id")
         val komgaUrl = stringPreferencesKey("komga_url")
         val komgaUser = stringPreferencesKey("komga_user")
         val komgaPassword = stringPreferencesKey("komga_password")
@@ -45,6 +49,12 @@ class SettingsRepository(private val context: Context) {
                 ?: ReaderMode.WEBTOON,
             keepScreenOn = prefs[Keys.keepScreenOn] ?: true,
             webtoonZoom = prefs[Keys.webtoonZoom] ?: true,
+            readerRtl = prefs[Keys.readerRtl] ?: false,
+            mangadexLanguages = prefs[Keys.mangadexLanguages]
+                ?.filter { it in SUPPORTED_LANGUAGES }
+                ?.toSet()
+                ?: setOf("en", "ru"),
+            suwayomiSourceId = prefs[Keys.suwayomiSourceId].orEmpty(),
             komga = ServerConnection(
                 url = prefs[Keys.komgaUrl].orEmpty(),
                 user = prefs[Keys.komgaUser].orEmpty(),
@@ -88,6 +98,31 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.webtoonZoom] = enabled }
     }
 
+    suspend fun setReaderRtl(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.readerRtl] = enabled }
+    }
+
+    /**
+     * Toggles one MangaDex chapter language. When every language ends up
+     * disabled the filter is lifted entirely (empty set = all languages).
+     */
+    suspend fun setMangadexLanguage(language: String, enabled: Boolean) {
+        val lang = language.lowercase()
+        if (lang !in SUPPORTED_LANGUAGES) return
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.mangadexLanguages]
+                ?.filter { it in SUPPORTED_LANGUAGES }
+                ?.toSet()
+                ?: setOf("en", "ru")
+            prefs[Keys.mangadexLanguages] =
+                if (enabled) current + lang else current - lang
+        }
+    }
+
+    suspend fun setSuwayomiSource(sourceId: String) {
+        context.dataStore.edit { it[Keys.suwayomiSourceId] = sourceId.trim() }
+    }
+
     suspend fun setServer(server: ServerId, connection: ServerConnection) {
         context.dataStore.edit { prefs ->
             when (server) {
@@ -107,3 +142,6 @@ class SettingsRepository(private val context: Context) {
 }
 
 enum class ServerId { KOMGA, SUWAYOMI }
+
+/** MangaDex chapter languages Kinera can filter by. */
+val SUPPORTED_LANGUAGES = setOf("en", "ru")

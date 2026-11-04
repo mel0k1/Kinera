@@ -22,6 +22,13 @@ import org.kinera.app.data.suwayomi.dto.MangaDetailsNode
 import org.kinera.app.data.suwayomi.dto.SourcesData
 import java.util.Locale
 
+/** One source installed on the Suwayomi server, for the Settings picker. */
+data class SuwayomiSourceOption(
+    val id: String,
+    val name: String,
+    val lang: String,
+)
+
 /**
  * Catalog source for a self-hosted Suwayomi server (Tachidesk).
  * Catalog, search and details go through the GraphQL API; page and cover
@@ -29,8 +36,9 @@ import java.util.Locale
  * basic-auth the OkHttp interceptor attaches.
  *
  * One Suwayomi server hosts many Tachiyomi sources; this source reads from
- * the preferred one (first English source, otherwise the first listed), so
- * the app can treat the whole server as a single catalog.
+ * the one picked in Settings, falling back to the first English source and
+ * then to the first listed one, so the app can treat the whole server as a
+ * single catalog.
  */
 class SuwayomiSource(
     private val api: SuwayomiApi,
@@ -59,22 +67,49 @@ class SuwayomiSource(
     }
 
     /**
-     * Id of the Suwayomi source used as catalog. Cached after the first
-     * successful lookup; prefers English, then the first listed source.
+     * Sources installed on the server, for the picker in Settings. Sorted by
+     * display name so the list is stable between refreshes.
+     */
+    suspend fun availableSources(): List<SuwayomiSourceOption> {
+        val data = request(SuwayomiQueries.SOURCES) { json.decodeData<SourcesData>(it) }
+        val options = data.sources.nodes.map { node ->
+            SuwayomiSourceOption(
+                id = node.id,
+                name = node.displayName?.takeIf { it.isNotBlank() }
+                    ?: node.name?.takeIf { it.isNotBlank() }
+                    ?: node.id,
+                lang = node.lang.orEmpty(),
+            )
+        }
+        check(options.isNotEmpty()) { "Suwayomi server has no sources installed" }
+        return options.sortedBy { it.name.lowercase() }
+    }
+
+    /**
+     * Id of the Suwayomi source used as catalog. Cached per preference
+     * value: the user's pick wins, then the first English source, then the
+     * first listed one. A missing pick (source removed on the server)
+     * silently falls back, so the catalog never dead-ends.
      */
     private suspend fun preferredSourceId(): String {
-        preferredSourceIdCache?.let { return it }
+        val preference = settings.snapshot.value.suwayomiSourceId
+        preferredSourceIdCache?.takeIf { preferredSourceIdCacheFor == preference }?.let { return it }
         val data = request(SuwayomiQueries.SOURCES) { json.decodeData<SourcesData>(it) }
         val nodes = data.sources.nodes
-        val chosen = nodes.firstOrNull { it.lang.equals("en", ignoreCase = true) }
+        val chosen = nodes.firstOrNull { it.id == preference }
+            ?: nodes.firstOrNull { it.lang.equals("en", ignoreCase = true) }
             ?: nodes.firstOrNull()
             ?: error("Suwayomi server has no sources installed")
         preferredSourceIdCache = chosen.id
+        preferredSourceIdCacheFor = preference
         return chosen.id
     }
 
     @Volatile
     private var preferredSourceIdCache: String? = null
+
+    @Volatile
+    private var preferredSourceIdCacheFor: String? = null
 
     suspend fun popular(offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
         fetch(offset, type = "POPULAR")

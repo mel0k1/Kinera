@@ -73,6 +73,7 @@
     <string name="reader_page_of">Page %1$d of %2$d</string>
     <string name="reader_mode_webtoon">Webtoon</string>
     <string name="reader_mode_paged">Paged</string>
+    <string name="reader_mode_rtl">Right-to-left</string>
     <string name="reader_previous_chapter">Previous chapter</string>
     <string name="reader_next_chapter">Next chapter</string>
     <string name="reader_no_next_chapter">This is the last chapter</string>
@@ -148,6 +149,18 @@
     <string name="settings_keep_screen_on_summary">Prevent sleep while reading</string>
     <string name="settings_webtoon_zoom">Webtoon zoom</string>
     <string name="settings_webtoon_zoom_summary">Pinch to zoom and double-tap in webtoon mode</string>
+    <string name="settings_reader_rtl">Right-to-left reading</string>
+    <string name="settings_reader_rtl_summary">Classic manga page order in the paged reader</string>
+
+    <string name="settings_sources">Sources</string>
+    <string name="settings_mangadex_languages">MangaDex languages</string>
+    <string name="settings_mangadex_languages_hint">With both off, manga in any language is shown</string>
+    <string name="language_english">English</string>
+    <string name="language_russian">Русский</string>
+    <string name="settings_suwayomi_source">Catalog source</string>
+    <string name="settings_suwayomi_source_auto">Automatic</string>
+    <string name="settings_suwayomi_sources_loading">Loading sources…</string>
+    <string name="settings_suwayomi_sources_failed">Could not load sources</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_source_code">Source code</string>

@@ -114,7 +114,7 @@ val dataModule = module {
             .create(SuwayomiApi::class.java)
     }
 
-    single { MangaDexSource(get()) }
+    single { MangaDexSource(get(), get()) }
     single { KomgaSource(get(), get()) }
     single { SuwayomiSource(get(), get(), get()) }
     single { LocalSourceStorage(androidContext()) }

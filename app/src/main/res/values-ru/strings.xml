@@ -63,6 +63,7 @@
     <string name="reader_page_of">Страница %1$d из %2$d</string>
     <string name="reader_mode_webtoon">Лента</string>
     <string name="reader_mode_paged">Постранично</string>
+    <string name="reader_mode_rtl">Справа налево</string>
     <string name="reader_previous_chapter">Предыдущая глава</string>
     <string name="reader_next_chapter">Следующая глава</string>
     <string name="reader_no_next_chapter">Это последняя глава</string>
@@ -135,6 +136,18 @@
     <string name="settings_keep_screen_on_summary">Экран не будет выключаться во время чтения</string>
     <string name="settings_webtoon_zoom">Зум в ленте</string>
     <string name="settings_webtoon_zoom_summary">Щипок и двойное нажатие для зума в режиме ленты</string>
+    <string name="settings_reader_rtl">Чтение справа налево</string>
+    <string name="settings_reader_rtl_summary">Классический порядок страниц манги в постраничном режиме</string>
+
+    <string name="settings_sources">Источники</string>
+    <string name="settings_mangadex_languages">Языки MangaDex</string>
+    <string name="settings_mangadex_languages_hint">Если оба выключены — показывается манга на любых языках</string>
+    <string name="language_english">English</string>
+    <string name="language_russian">Русский</string>
+    <string name="settings_suwayomi_source">Источник каталога</string>
+    <string name="settings_suwayomi_source_auto">Автоматически</string>
+    <string name="settings_suwayomi_sources_loading">Загрузка источников…</string>
+    <string name="settings_suwayomi_sources_failed">Не удалось загрузить источники</string>
     <string name="settings_about">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_source_code">Исходный код</string>

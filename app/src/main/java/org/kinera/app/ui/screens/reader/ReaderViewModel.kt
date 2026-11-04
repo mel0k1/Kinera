@@ -58,6 +58,10 @@ class ReaderViewModel(
     private val _webtoonZoom = MutableStateFlow(true)
     val webtoonZoom: StateFlow<Boolean> = _webtoonZoom.asStateFlow()
 
+    /** Right-to-left page order for the paged reader. */
+    private val _readerRtl = MutableStateFlow(false)
+    val readerRtl: StateFlow<Boolean> = _readerRtl.asStateFlow()
+
     /** Bookmark jump target, applied once and then cleared. */
     private var pendingStartPage = startPage
 
@@ -88,6 +92,7 @@ class ReaderViewModel(
             _readerMode.value = prefs.readerMode
             _keepScreenOn.value = prefs.keepScreenOn
             _webtoonZoom.value = prefs.webtoonZoom
+            _readerRtl.value = prefs.readerRtl
         }
         viewModelScope.launch {
             runCatching {
@@ -110,6 +115,11 @@ class ReaderViewModel(
     fun setReaderMode(mode: ReaderMode) {
         _readerMode.value = mode
         viewModelScope.launch { settings.setReaderMode(mode) }
+    }
+
+    fun setReaderRtl(enabled: Boolean) {
+        _readerRtl.value = enabled
+        viewModelScope.launch { settings.setReaderRtl(enabled) }
     }
 
     fun onPageChanged(page: Int) {

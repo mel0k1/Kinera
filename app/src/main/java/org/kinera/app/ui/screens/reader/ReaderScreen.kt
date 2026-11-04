@@ -30,6 +30,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.FormatTextdirectionRToL
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
@@ -46,6 +47,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,6 +55,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -64,8 +67,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import org.kinera.app.R
@@ -75,6 +80,7 @@ import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlinx.coroutines.launch
 
 private const val MAX_ZOOM = 5f
 private const val DOUBLE_TAP_ZOOM = 2.5f
@@ -95,6 +101,7 @@ fun ReaderScreen(
     val readerMode by viewModel.readerMode.collectAsState()
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val webtoonZoom by viewModel.webtoonZoom.collectAsState()
+    val readerRtl by viewModel.readerRtl.collectAsState()
     val isBookmarked by viewModel.isBookmarked.collectAsState()
     val message by viewModel.message.collectAsState()
 
@@ -154,6 +161,7 @@ fun ReaderScreen(
                         ReaderMode.PAGED -> PagedContent(
                             pages = pages.map { it.url },
                             currentPage = currentPage,
+                            rtl = readerRtl,
                             onTap = { controlsVisible = !controlsVisible },
                             onPageChanged = viewModel::onPageChanged,
                         )
@@ -187,6 +195,7 @@ fun ReaderScreen(
                 canGoNext = chapterIndex + 1 < chapters.size,
                 canGoPrev = chapterIndex > 0,
                 readerMode = readerMode,
+                readerRtl = readerRtl,
                 isBookmarked = isBookmarked,
                 onSeek = { viewModel.onPageChanged(it) },
                 onNextChapter = { viewModel.nextChapter() },
@@ -197,6 +206,7 @@ fun ReaderScreen(
                         if (readerMode == ReaderMode.WEBTOON) ReaderMode.PAGED else ReaderMode.WEBTOON,
                     )
                 },
+                onToggleRtl = { viewModel.setReaderRtl(!readerRtl) },
             )
         }
 
@@ -271,12 +281,14 @@ private fun ReaderBottomBar(
     canGoNext: Boolean,
     canGoPrev: Boolean,
     readerMode: ReaderMode,
+    readerRtl: Boolean,
     isBookmarked: Boolean,
     onSeek: (Int) -> Unit,
     onNextChapter: () -> Unit,
     onPrevChapter: () -> Unit,
     onToggleBookmark: () -> Unit,
     onToggleMode: () -> Unit,
+    onToggleRtl: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -310,6 +322,15 @@ private fun ReaderBottomBar(
                     ),
                     tint = Color.White,
                 )
+            }
+            if (readerMode == ReaderMode.PAGED) {
+                IconButton(onClick = onToggleRtl) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.FormatTextdirectionRToL,
+                        contentDescription = stringResource(R.string.reader_mode_rtl),
+                        tint = if (readerRtl) MaterialTheme.colorScheme.primary else Color.White,
+                    )
+                }
             }
             IconButton(onClick = onToggleBookmark) {
                 Icon(
@@ -419,14 +440,22 @@ private fun WebtoonContent(
     }
 }
 
+/**
+ * Horizontal pager. With [rtl] the pages run right-to-left, the classic
+ * manga direction: page 1 sits on the right and reading moves leftwards.
+ * In that mode the tap zones mirror too — the left edge flips forward, the
+ * right edge flips back, a tap in the middle toggles the controls.
+ */
 @Composable
 private fun PagedContent(
     pages: List<String>,
     currentPage: Int,
+    rtl: Boolean,
     onTap: () -> Unit,
     onPageChanged: (Int) -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { pages.size })
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(pages) {
         if (currentPage > 0) pagerState.scrollToPage(currentPage)
@@ -436,28 +465,45 @@ private fun PagedContent(
             .collect { index -> onPageChanged(index) }
     }
 
-    HorizontalPager(
-        state = pagerState,
-        modifier = Modifier.fillMaxSize(),
-    ) { index ->
-        ZoomablePage(
-            model = pages[index],
-            pageIndex = index,
-            onTap = onTap,
-        )
+    fun flipTo(target: Int) {
+        if (target in pages.indices) {
+            scope.launch { pagerState.animateScrollToPage(target) }
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+        ) { index ->
+            ZoomablePage(
+                model = pages[index],
+                pageIndex = index,
+                rtl = rtl,
+                onTap = onTap,
+                onNext = { flipTo(pagerState.currentPage + 1) },
+                onPrev = { flipTo(pagerState.currentPage - 1) },
+            )
+        }
     }
 }
 
 /**
  * One page of the paged reader: double tap zooms in and out, pinch and drag
  * pan the image while zoomed. When the page fits the screen the gestures are
- * left to the pager, so swiping between pages keeps working.
+ * left to the pager, so swiping between pages keeps working. In RTL mode the
+ * left third of the screen is "next", the right third is "previous".
  */
 @Composable
 private fun ZoomablePage(
     model: String,
     pageIndex: Int,
+    rtl: Boolean,
     onTap: () -> Unit,
+    onNext: () -> Unit,
+    onPrev: () -> Unit,
 ) {
     var scale by remember(pageIndex) { mutableFloatStateOf(1f) }
     var offset by remember(pageIndex) { mutableStateOf(Offset.Zero) }
@@ -502,7 +548,13 @@ private fun ZoomablePage(
                 }
                 .pointerInput(pageIndex) {
                     detectTapGestures(
-                        onTap = { onTap() },
+                        onTap = { tap ->
+                            when {
+                                rtl && tap.x < size.width / 3f -> onNext()
+                                rtl && tap.x > size.width * 2f / 3f -> onPrev()
+                                else -> onTap()
+                            }
+                        },
                         onDoubleTap = {
                             if (zoomed) {
                                 scale = 1f
