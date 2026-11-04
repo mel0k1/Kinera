@@ -26,7 +26,7 @@ class SettingsRepository(private val context: Context) {
         KineraSettings(
             themeMode = prefs[Keys.themeMode]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
                 ?: ThemeMode.SYSTEM,
-            dynamicColors = prefs[Keys.dynamicColors] ?: true,
+            dynamicColors = prefs[Keys.dynamicColors] ?: false,
             readerMode = prefs[Keys.readerMode]?.let { runCatching { ReaderMode.valueOf(it) }.getOrNull() }
                 ?: ReaderMode.WEBTOON,
             keepScreenOn = prefs[Keys.keepScreenOn] ?: true,

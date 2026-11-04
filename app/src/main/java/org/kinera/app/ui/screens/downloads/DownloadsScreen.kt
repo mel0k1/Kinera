@@ -3,6 +3,7 @@ package org.kinera.app.ui.screens.downloads
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
@@ -25,12 +25,13 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -49,9 +50,11 @@ import org.kinera.app.data.local.entity.DownloadEntity
 import org.kinera.app.data.local.entity.DownloadState
 import org.kinera.app.ui.components.CoverImage
 import org.kinera.app.ui.components.EmptyState
+import org.kinera.app.ui.components.pressScale
+import org.kinera.app.ui.components.rememberPressInteraction
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun DownloadsScreen(
     viewModel: DownloadsViewModel = koinViewModel(),
@@ -61,8 +64,18 @@ fun DownloadsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.downloads_title)) },
+                subtitle = {
+                    Text(
+                        text = when {
+                            items.isEmpty() -> stringResource(R.string.downloads_subtitle_empty)
+                            else -> stringResource(R.string.downloads_subtitle_count, items.size)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
@@ -79,6 +92,8 @@ fun DownloadsScreen(
         } else {
             val groups = remember(items) { items.groupBy { it.mangaId } }
             LazyColumn(
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxSize().padding(padding),
             ) {
                 groups.forEach { (_, chapters) ->
@@ -87,7 +102,7 @@ fun DownloadsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                .padding(top = 14.dp, bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             CoverImage(
@@ -96,7 +111,7 @@ fun DownloadsScreen(
                                 modifier = Modifier
                                     .width(44.dp)
                                     .height(62.dp)
-                                    .clip(RoundedCornerShape(10.dp)),
+                                    .clip(MaterialTheme.shapes.small),
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
@@ -114,7 +129,6 @@ fun DownloadsScreen(
                                 )
                             }
                         }
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                     }
                     items(chapters, key = { it.chapterId }) { download ->
                         DownloadRow(
@@ -159,11 +173,16 @@ private fun DownloadRow(
     onRetry: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -228,6 +247,7 @@ private fun DownloadRow(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
+        }
         }
     }
 }

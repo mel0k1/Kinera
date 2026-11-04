@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -70,6 +73,8 @@ import org.kinera.app.data.local.entity.DownloadState
 import org.kinera.app.ui.components.CoverImage
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
+import org.kinera.app.ui.components.pressScale
+import org.kinera.app.ui.components.rememberPressInteraction
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.text.DateFormat
@@ -135,6 +140,8 @@ fun DetailsScreen(
                 val manga = state.data
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     item { MangaHeader(manga, isFavorite, viewModel::toggleFavorite) }
                     item {
@@ -221,16 +228,18 @@ fun DetailsScreen(
                     } else {
                         itemsIndexed(chapters.asReversed(), key = { _, it -> it.id }) { _, chapter ->
                             val isRead = isChapterRead(chapter, progress?.chapterId, chapters)
-                            ChapterRow(
-                                chapter = chapter,
-                                isCurrent = chapter.id == progress?.chapterId,
-                                isRead = isRead,
-                                download = if (manga.source == org.kinera.app.core.model.MangaSource.LOCAL) null else downloadStates[chapter.id],
-                                onClick = { onReadChapter(manga, chapter, 0) },
-                                onDownload = { viewModel.downloadChapter(chapter) },
-                                onCancel = { viewModel.cancelDownload(chapter.id) },
-                                onDelete = { confirmDelete = chapter.id },
-                            )
+                            Box(Modifier.padding(horizontal = 16.dp)) {
+                                ChapterRow(
+                                    chapter = chapter,
+                                    isCurrent = chapter.id == progress?.chapterId,
+                                    isRead = isRead,
+                                    download = if (manga.source == org.kinera.app.core.model.MangaSource.LOCAL) null else downloadStates[chapter.id],
+                                    onClick = { onReadChapter(manga, chapter, 0) },
+                                    onDownload = { viewModel.downloadChapter(chapter) },
+                                    onCancel = { viewModel.cancelDownload(chapter.id) },
+                                    onDelete = { confirmDelete = chapter.id },
+                                )
+                            }
                         }
                     }
                 }
@@ -260,7 +269,7 @@ fun DetailsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MangaHeader(
     manga: Manga,
@@ -268,58 +277,77 @@ private fun MangaHeader(
     onToggleFavorite: () -> Unit,
 ) {
     Box {
+        // Cover backdrop bleeding into the background color
         CoverImage(
             url = manga.coverUrl,
             contentDescription = null,
-            modifier = Modifier.fillMaxWidth().height(280.dp),
+            modifier = Modifier.fillMaxWidth().height(300.dp),
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(280.dp)
+                .height(300.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, MaterialTheme.colorScheme.background),
-                        startY = 180f,
+                        listOf(Color.Black.copy(alpha = 0.3f), MaterialTheme.colorScheme.background),
+                        startY = 40f,
                     ),
                 ),
         )
-        Row(
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(16.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 20.dp),
         ) {
-            CoverImage(
-                url = manga.coverUrl,
-                contentDescription = manga.title,
-                modifier = Modifier
-                    .width(110.dp)
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-            )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = manga.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                CoverImage(
+                    url = manga.coverUrl,
+                    contentDescription = manga.title,
+                    modifier = Modifier
+                        .width(118.dp)
+                        .height(168.dp)
+                        .clip(MaterialTheme.shapes.extraLarge),
                 )
-                manga.author?.let {
+                Column(
+                    Modifier.weight(1f).padding(bottom = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        text = manga.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    manga.author?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Text(
+                            text = stateLabel(manga.state),
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
                 }
-                Text(
-                    text = stateLabel(manga.state),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            }
+            Row(
+                modifier = Modifier.padding(top = 14.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 FilledIconToggleButton(
                     checked = isFavorite,
                     onCheckedChange = { onToggleFavorite() },
@@ -331,6 +359,15 @@ private fun MangaHeader(
                         ),
                     )
                 }
+                Text(
+                    text = if (isFavorite) {
+                        stringResource(R.string.details_in_library)
+                    } else {
+                        stringResource(R.string.details_add_favorite)
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -423,13 +460,29 @@ private fun ChapterRow(
     onCancel: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Row(
+    val interaction = rememberPressInteraction()
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = if (isCurrent) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+        contentColor = if (isCurrent) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .pressScale(interactionSource = interaction),
     ) {
+        Row(
+            modifier = Modifier
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = chapter.label,
@@ -463,6 +516,7 @@ private fun ChapterRow(
             onCancel = onCancel,
             onDelete = onDelete,
         )
+        }
     }
 }
 

@@ -2,6 +2,7 @@ package org.kinera.app.ui.screens.history
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,22 +12,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,9 +41,11 @@ import org.kinera.app.core.model.MangaSource
 import org.kinera.app.data.local.entity.HistoryEntity
 import org.kinera.app.ui.components.CoverImage
 import org.kinera.app.ui.components.EmptyState
+import org.kinera.app.ui.components.pressScale
+import org.kinera.app.ui.components.rememberPressInteraction
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HistoryScreen(
     onOpenManga: (Manga, chapterId: String) -> Unit,
@@ -51,8 +55,18 @@ fun HistoryScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.history_title)) },
+                subtitle = {
+                    Text(
+                        text = when {
+                            history.isEmpty() -> stringResource(R.string.history_subtitle_empty)
+                            else -> stringResource(R.string.history_subtitle_count, history.size)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
                 actions = {
                     if (history.isNotEmpty()) {
                         IconButton(onClick = viewModel::clear) {
@@ -75,8 +89,8 @@ fun HistoryScreen(
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize().padding(padding),
             ) {
                 items(history, key = { it.mangaId }) { entry ->
@@ -91,10 +105,6 @@ fun HistoryScreen(
                             entry.chapterId,
                         )
                     }
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                    )
                 }
             }
         }
@@ -103,45 +113,53 @@ fun HistoryScreen(
 
 @Composable
 private fun HistoryRow(entry: HistoryEntity, onClick: () -> Unit) {
-    Row(
+    val interaction = rememberPressInteraction()
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .pressScale(interactionSource = interaction),
     ) {
-        CoverImage(
-            url = entry.coverUrl,
-            contentDescription = entry.title,
+        Row(
             modifier = Modifier
-                .size(56.dp, 76.dp)
-                .clip(RoundedCornerShape(12.dp)),
-        )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = entry.title,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CoverImage(
+                url = entry.coverUrl,
+                contentDescription = entry.title,
+                modifier = Modifier
+                    .size(56.dp, 76.dp)
+                    .clip(MaterialTheme.shapes.small),
             )
-            Text(
-                text = entry.chapterLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (entry.total > 0) {
-                LinearProgressIndicator(
-                    progress = { (entry.page + 1f) / entry.total },
-                    modifier = Modifier.fillMaxWidth(),
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = stringResource(R.string.history_page_progress, entry.page + 1, entry.total),
-                    style = MaterialTheme.typography.labelSmall,
+                    text = entry.chapterLabel,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (entry.total > 0) {
+                    LinearWavyProgressIndicator(
+                        progress = { (entry.page + 1f) / entry.total },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = stringResource(R.string.history_page_progress, entry.page + 1, entry.total),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

@@ -1,8 +1,12 @@
 package org.kinera.app.ui.navigation
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -40,10 +44,35 @@ fun KineraNavHost(
         navController = navController,
         startDestination = LibraryRoute,
         modifier = modifier,
-        enterTransition = { fadeIn(tween(220)) },
-        exitTransition = { fadeOut(tween(150)) },
-        popEnterTransition = { fadeIn(tween(220)) },
-        popExitTransition = { fadeOut(tween(150)) },
+        // M3E motion: content eases in with a soft spring, exits fast
+        enterTransition = {
+            fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = 0.9f,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    initialScale = 0.96f,
+                )
+        },
+        exitTransition = { fadeOut(tween(140)) },
+        popEnterTransition = {
+            fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = 0.9f,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    initialScale = 0.96f,
+                )
+        },
+        popExitTransition = {
+            fadeOut(tween(140)) +
+                scaleOut(
+                    animationSpec = tween(140),
+                    targetScale = 0.98f,
+                )
+        },
     ) {
         composable<LibraryRoute> {
             LibraryScreen(

@@ -12,6 +12,8 @@
     <string name="library_title">Library</string>
     <string name="library_empty">Your shelf is empty</string>
     <string name="library_empty_hint">Open Explore and add manga you like</string>
+    <string name="library_subtitle_empty">Nothing on the shelf yet</string>
+    <string name="library_subtitle_count">%1$d titles on the shelf</string>
     <string name="library_category_all">All</string>
     <string name="library_new_category">New category</string>
     <string name="library_category_name_hint">Category name</string>
@@ -40,6 +42,14 @@
     <string name="history_clear_confirm">Clear all reading history?</string>
     <string name="history_clear_yes">Clear</string>
     <string name="history_page_progress">Page %1$d of %2$d</string>
+    <string name="history_subtitle_empty">Your reading trail will show here</string>
+    <string name="history_subtitle_count">%1$d titles in progress</string>
+
+    <!-- Explore -->
+    <string name="explore_subtitle">Fresh chapters from MangaDex</string>
+
+    <string name="downloads_subtitle_empty">Nothing saved for offline yet</string>
+    <string name="downloads_subtitle_count">%1$d chapters saved offline</string>
 
     <!-- Details -->
     <string name="details_start_reading">Start reading</string>
@@ -110,13 +120,14 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Tune Kinera to your taste</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_mode">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_dynamic_colors">Dynamic colors</string>
-    <string name="settings_dynamic_colors_summary">Use wallpaper-based Material You palette</string>
+    <string name="settings_dynamic_colors_summary">Swap the Kinera palette for a wallpaper-based one</string>
     <string name="settings_reader">Reader</string>
     <string name="settings_reader_mode">Default reading mode</string>
     <string name="settings_keep_screen_on">Keep screen on</string>

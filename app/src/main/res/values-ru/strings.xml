@@ -8,6 +8,8 @@
     <string name="library_title">Библиотека</string>
     <string name="library_empty">Полка пуста</string>
     <string name="library_empty_hint">Загляните в «Обзор» и добавьте что-нибудь</string>
+    <string name="library_subtitle_empty">На полке пока пусто</string>
+    <string name="library_subtitle_count">Титулов на полке: %1$d</string>
     <string name="library_category_all">Все</string>
     <string name="library_new_category">Новая категория</string>
     <string name="library_category_name_hint">Название категории</string>
@@ -33,6 +35,13 @@
     <string name="history_clear_confirm">Очистить всю историю чтения?</string>
     <string name="history_clear_yes">Очистить</string>
     <string name="history_page_progress">Страница %1$d из %2$d</string>
+    <string name="history_subtitle_empty">Здесь появится ваш след чтения</string>
+    <string name="history_subtitle_count">Читается сейчас: %1$d</string>
+
+    <string name="explore_subtitle">Свежие главы с MangaDex</string>
+
+    <string name="downloads_subtitle_empty">Пока ничего не сохранено для офлайна</string>
+    <string name="downloads_subtitle_count">Глав в офлайне: %1$d</string>
 
     <string name="details_start_reading">Начать читать</string>
     <string name="details_continue">Продолжить · гл. %1$s</string>
@@ -97,13 +106,14 @@
     <string name="details_bookmark_page">Страница %1$d</string>
 
     <string name="settings_title">Настройки</string>
+    <string name="settings_subtitle">Настройте Kinera под себя</string>
     <string name="settings_appearance">Внешний вид</string>
     <string name="settings_theme_mode">Тема</string>
     <string name="settings_theme_system">Системная</string>
     <string name="settings_theme_light">Светлая</string>
     <string name="settings_theme_dark">Тёмная</string>
     <string name="settings_dynamic_colors">Динамические цвета</string>
-    <string name="settings_dynamic_colors_summary">Палитра из обоев (Material You)</string>
+    <string name="settings_dynamic_colors_summary">Заменить фирменную палитру Kinera на палитру из обоев</string>
     <string name="settings_reader">Читалка</string>
     <string name="settings_reader_mode">Режим чтения по умолчанию</string>
     <string name="settings_keep_screen_on">Не гасить экран</string>

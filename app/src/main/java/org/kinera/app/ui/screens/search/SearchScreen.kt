@@ -103,9 +103,9 @@ fun SearchScreen(
                 )
                 results.isNotEmpty() -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 108.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(results, key = { it.id }) { manga ->

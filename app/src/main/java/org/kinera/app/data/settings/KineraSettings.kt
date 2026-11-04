@@ -6,7 +6,7 @@ enum class ReaderMode { WEBTOON, PAGED }
 
 data class KineraSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val dynamicColors: Boolean = true,
+    val dynamicColors: Boolean = false,
     val readerMode: ReaderMode = ReaderMode.WEBTOON,
     val keepScreenOn: Boolean = true,
     val webtoonZoom: Boolean = true,
