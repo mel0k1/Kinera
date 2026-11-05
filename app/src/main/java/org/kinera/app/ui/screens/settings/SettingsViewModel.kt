@@ -1,5 +1,6 @@
 package org.kinera.app.ui.screens.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -8,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.kinera.app.data.backup.BackupManager
+import org.kinera.app.data.backup.RestoreSummary
 import org.kinera.app.data.settings.KineraSettings
 import org.kinera.app.data.settings.ReaderMode
 import org.kinera.app.data.settings.ServerConnection
@@ -23,6 +26,7 @@ class SettingsViewModel(
     private val repository: SettingsRepository,
     private val suwayomi: SuwayomiSource,
     private val libraryUpdateScheduler: LibraryUpdateScheduler,
+    private val backupManager: BackupManager,
 ) : ViewModel() {
 
     val settings = repository.settings
@@ -92,4 +96,38 @@ class SettingsViewModel(
     fun selectSuwayomiSource(sourceId: String) = viewModelScope.launch {
         repository.setSuwayomiSource(sourceId)
     }
+
+    /* ----- library backup ----- */
+
+    /** One-shot result of the last export / restore, consumed by the screen. */
+    private val _backupState = MutableStateFlow<BackupState?>(null)
+    val backupState: StateFlow<BackupState?> = _backupState.asStateFlow()
+
+    fun exportLibrary(uri: Uri) {
+        viewModelScope.launch {
+            _backupState.value = backupManager.export(uri).fold(
+                onSuccess = { BackupState.Exported(it) },
+                onFailure = { BackupState.Failed(it.message) },
+            )
+        }
+    }
+
+    fun importLibrary(uri: Uri) {
+        viewModelScope.launch {
+            _backupState.value = backupManager.import(uri).fold(
+                onSuccess = { BackupState.Restored(it) },
+                onFailure = { BackupState.Failed(it.message) },
+            )
+        }
+    }
+
+    fun consumeBackupState() {
+        _backupState.value = null
+    }
+}
+
+sealed interface BackupState {
+    data class Exported(val favourites: Int) : BackupState
+    data class Restored(val summary: RestoreSummary) : BackupState
+    data class Failed(val message: String?) : BackupState
 }

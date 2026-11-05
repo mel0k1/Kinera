@@ -151,6 +151,15 @@
     <string name="settings_library_interval">Интервал проверки</string>
     <string name="settings_library_hours">%1$d ч</string>
 
+    <string name="settings_data">Данные</string>
+    <string name="settings_backup_export">Экспорт библиотеки</string>
+    <string name="settings_backup_export_summary">Сохранить избранное, категории, историю и закладки в JSON-файл</string>
+    <string name="settings_backup_import">Восстановить библиотеку</string>
+    <string name="settings_backup_import_summary">Объединить ранее сохранённый файл резервной копии</string>
+    <string name="settings_backup_exported">Экспортировано избранного: %1$d</string>
+    <string name="settings_backup_restored">Восстановлено избранного: %1$d</string>
+    <string name="settings_backup_failed">Не удалось выполнить резервное копирование</string>
+
     <string name="settings_sources">Источники</string>
     <string name="settings_mangadex_languages">Языки MangaDex</string>
     <string name="settings_mangadex_languages_hint">Если оба выключены — показывается манга на любых языках</string>

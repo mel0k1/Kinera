@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.kinera.app.BuildConfig
+import org.kinera.app.data.backup.BackupManager
 import org.kinera.app.data.downloads.DownloadStorage
 import org.kinera.app.data.desume.DesuMeApi
 import org.kinera.app.data.desume.DesuMeSource
@@ -196,6 +197,7 @@ val dataModule = module {
     single { LibraryRepository(get(), get(), get(), get(), get()) }
 
     single { DownloadStorage(androidContext()) }
+    single { BackupManager(androidContext(), get(), get()) }
     single {
         DownloadRepository(androidContext(), get(), get())
     }

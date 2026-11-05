@@ -164,6 +164,15 @@
     <string name="settings_library_interval">Check interval</string>
     <string name="settings_library_hours">%1$d h</string>
 
+    <string name="settings_data">Data</string>
+    <string name="settings_backup_export">Export library</string>
+    <string name="settings_backup_export_summary">Save favorites, categories, history and bookmarks to a JSON file</string>
+    <string name="settings_backup_import">Restore library</string>
+    <string name="settings_backup_import_summary">Merge a previously exported backup file</string>
+    <string name="settings_backup_exported">Exported %1$d favorites</string>
+    <string name="settings_backup_restored">Restored %1$d favorites</string>
+    <string name="settings_backup_failed">Backup failed</string>
+
     <string name="settings_sources">Sources</string>
     <string name="settings_mangadex_languages">MangaDex languages</string>
     <string name="settings_mangadex_languages_hint">With both off, manga in any language is shown</string>

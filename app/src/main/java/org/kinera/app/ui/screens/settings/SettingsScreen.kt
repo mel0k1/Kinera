@@ -1,5 +1,7 @@
 package org.kinera.app.ui.screens.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,10 +37,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +58,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.Dns
@@ -60,6 +66,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.StayCurrentLandscape
 import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.Sync
@@ -82,9 +89,48 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val suwayomiSources by viewModel.suwayomiSources.collectAsState()
+    val backupState by viewModel.backupState.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val backupFileName = "kinera-backup-" +
+        java.time.LocalDate.now().toString() + ".json"
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri -> if (uri != null) viewModel.exportLibrary(uri) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> if (uri != null) viewModel.importLibrary(uri) }
+
+    LaunchedEffect(backupState) {
+        when (val state = backupState) {
+            is BackupState.Exported -> {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.settings_backup_exported, state.favourites),
+                )
+                viewModel.consumeBackupState()
+            }
+            is BackupState.Restored -> {
+                snackbarHostState.showSnackbar(
+                    context.getString(
+                        R.string.settings_backup_restored,
+                        state.summary.favourites,
+                    ),
+                )
+                viewModel.consumeBackupState()
+            }
+            is BackupState.Failed -> {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.settings_backup_failed),
+                )
+                viewModel.consumeBackupState()
+            }
+            null -> Unit
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
@@ -233,6 +279,22 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
+            SectionHeader(stringResource(R.string.settings_data), Icons.Rounded.Backup)
+
+            ActionRow(
+                icon = Icons.Rounded.Backup,
+                title = stringResource(R.string.settings_backup_export),
+                subtitle = stringResource(R.string.settings_backup_export_summary),
+                onClick = { exportLauncher.launch(backupFileName) },
+            )
+            ActionRow(
+                icon = Icons.Rounded.Restore,
+                title = stringResource(R.string.settings_backup_import),
+                subtitle = stringResource(R.string.settings_backup_import_summary),
+                onClick = { importLauncher.launch(arrayOf("application/json")) },
+            )
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
             SectionHeader(stringResource(R.string.settings_sources), Icons.Rounded.Language)
@@ -578,6 +640,37 @@ private fun SwitchRow(    icon: ImageVector,
             )
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+/** Tappable settings row used by the backup actions. */
+@Composable
+private fun ActionRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(horizontal = 16.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
