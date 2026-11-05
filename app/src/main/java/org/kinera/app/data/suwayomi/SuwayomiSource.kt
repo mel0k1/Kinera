@@ -117,8 +117,18 @@ class SuwayomiSource(
     suspend fun latest(offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
         fetch(offset, type = "LATEST")
 
-    suspend fun search(query: String, offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
-        fetch(offset, type = "SEARCH", searchQuery = query)
+    /**
+     * Search inside one source of the server. When [serverSourceId] is null
+     * or blank the preferred source from Settings is used, matching the
+     * Popular and Latest feeds.
+     */
+    suspend fun search(
+        query: String,
+        offset: Int,
+        limit: Int = PAGE_SIZE,
+        serverSourceId: String? = null,
+    ): Paged<Manga> =
+        fetch(offset, type = "SEARCH", searchQuery = query, serverSourceId = serverSourceId)
 
     suspend fun details(mangaId: String): Manga {
         val server = server()
@@ -164,13 +174,14 @@ class SuwayomiSource(
         offset: Int,
         type: String,
         searchQuery: String? = null,
+        serverSourceId: String? = null,
     ): Paged<Manga> {
         val server = server()
         // Tachiyomi/Mihon sources behind the server are 1-indexed.
         val page = offset / PAGE_SIZE + 1
         val variables = buildJsonObject {
             putJsonObject("input") {
-                put("source", preferredSourceId())
+                put("source", serverSourceId?.takeIf { it.isNotBlank() } ?: preferredSourceId())
                 put("page", page)
                 put("type", type)
                 if (!searchQuery.isNullOrBlank()) put("query", searchQuery)

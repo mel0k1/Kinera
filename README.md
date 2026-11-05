@@ -32,7 +32,7 @@ Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](http
 - **Backup & restore** — export the whole library (favourites, categories, history, page bookmarks) to a human-readable JSON file and merge it back after a reinstall or on another device; the file is exchanged through the system file picker, categories are matched by name
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
-- **Search** — debounced title search with load-more, across every configured source
+- **Search** — debounced title search with load-more, across every configured source; with Suwayomi you pick which source installed on the server to search in, right above the results
 - **Reader** — webtoon (continuous scroll) and paged modes, switchable on the fly; pinch-to-zoom and double-tap zoom in both modes; screen stays awake while you read
 - **History** — automatic reading progress, resume where you stopped
 - **Bookmarks** — mark any page from the reader and jump back to it from the manga details

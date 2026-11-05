@@ -18,11 +18,14 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.settings.SettingsRepository
+import org.kinera.app.data.suwayomi.SuwayomiSource
+import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 
 @OptIn(FlowPreview::class)
 class SearchViewModel(
     private val catalog: CatalogRepository,
     settings: SettingsRepository,
+    private val suwayomi: SuwayomiSource,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -45,6 +48,16 @@ class SearchViewModel(
 
     private val _hasNext = MutableStateFlow(false)
     val hasNext: StateFlow<Boolean> = _hasNext.asStateFlow()
+
+    /** Sources installed on the Suwayomi server, for the second chip row. */
+    private val _suwayomiSources = MutableStateFlow<List<SuwayomiSourceOption>>(emptyList())
+    val suwayomiSources: StateFlow<List<SuwayomiSourceOption>> = _suwayomiSources.asStateFlow()
+
+    /** Picked server source for Suwayomi search; null = the automatic pick. */
+    private val _suwayomiSourceId = MutableStateFlow<String?>(null)
+    val suwayomiSourceId: StateFlow<String?> = _suwayomiSourceId.asStateFlow()
+
+    private var suwayomiSourcesRequested = false
 
     private var nextOffset = 0
     /** Bumped on every new search; late responses of stale runs are dropped. */
@@ -79,7 +92,33 @@ class SearchViewModel(
     fun selectSource(source: MangaSource) {
         if (source == _source.value || source == MangaSource.LOCAL) return
         _source.value = source
+        if (source == MangaSource.SUWAYOMI) {
+            loadSuwayomiSources()
+        } else {
+            // The server source only applies to Suwayomi results.
+            _suwayomiSourceId.value = null
+        }
         performSearch(_query.value)
+    }
+
+    /** Picks which source of the Suwayomi server to search in. */
+    fun selectSuwayomiSource(sourceId: String?) {
+        if (sourceId == _suwayomiSourceId.value) return
+        _suwayomiSourceId.value = sourceId
+        performSearch(_query.value)
+    }
+
+    /**
+     * Fetches the sources installed on the Suwayomi server once per
+     * screen; a failure leaves the row hidden and is retried the next
+     * time Suwayomi is picked.
+     */
+    private fun loadSuwayomiSources() {
+        if (suwayomiSourcesRequested && _suwayomiSources.value.isNotEmpty()) return
+        suwayomiSourcesRequested = true
+        viewModelScope.launch {
+            _suwayomiSources.value = runCatching { suwayomi.availableSources() }.getOrDefault(emptyList())
+        }
     }
 
     fun loadMore() {
@@ -87,7 +126,14 @@ class SearchViewModel(
         if (query.isBlank() || _loading.value || _loadingMore.value || !_hasNext.value) return
         _loadingMore.value = true
         viewModelScope.launch {
-            runCatching { catalog.search(query, source = _source.value, offset = nextOffset) }
+            runCatching {
+                catalog.search(
+                    query,
+                    source = _source.value,
+                    offset = nextOffset,
+                    suwayomiSourceId = activeSuwayomiSourceId(),
+                )
+            }
                 .onSuccess { page ->
                     nextOffset = page.offset + page.items.size
                     _hasNext.value = page.hasNext
@@ -110,7 +156,14 @@ class SearchViewModel(
         nextOffset = 0
         val generation = ++searchGeneration
         viewModelScope.launch {
-            runCatching { catalog.search(query.trim(), source = _source.value, offset = 0) }
+            runCatching {
+                catalog.search(
+                    query.trim(),
+                    source = _source.value,
+                    offset = 0,
+                    suwayomiSourceId = activeSuwayomiSourceId(),
+                )
+            }
                 .onSuccess { page ->
                     if (generation != searchGeneration) return@launch
                     nextOffset = page.offset + page.items.size
@@ -121,4 +174,8 @@ class SearchViewModel(
             if (generation == searchGeneration) _loading.value = false
         }
     }
+
+    /** Server source for the running search, only meaningful for Suwayomi. */
+    private fun activeSuwayomiSourceId(): String? =
+        if (_source.value == MangaSource.SUWAYOMI) _suwayomiSourceId.value else null
 }

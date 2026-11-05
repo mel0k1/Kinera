@@ -60,13 +60,14 @@ open class CatalogRepository(
         query: String,
         source: MangaSource = MangaSource.MANGADEX,
         offset: Int = 0,
+        suwayomiSourceId: String? = null,
     ): Paged<Manga> = when (source) {
         MangaSource.MANGADEX -> mangadex.search(query, offset)
         MangaSource.MANGALIB -> mangalib.search(query, offset)
         MangaSource.REMANGA -> remanga.search(query, offset)
         MangaSource.DESUME -> desume.search(query, offset)
         MangaSource.KOMGA -> komga.search(query, offset)
-        MangaSource.SUWAYOMI -> suwayomi.search(query, offset)
+        MangaSource.SUWAYOMI -> suwayomi.search(query, offset, serverSourceId = suwayomiSourceId)
         MangaSource.LOCAL -> Paged(emptyList())
     }
 

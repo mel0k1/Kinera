@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import org.kinera.app.R
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
+import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.MangaCard
 import org.koin.compose.viewmodel.koinViewModel
@@ -60,6 +61,8 @@ fun SearchScreen(
     val source by viewModel.source.collectAsState()
     val sources by viewModel.availableSources.collectAsState()
     val hasNext by viewModel.hasNext.collectAsState()
+    val suwayomiSources by viewModel.suwayomiSources.collectAsState()
+    val suwayomiSourceId by viewModel.suwayomiSourceId.collectAsState()
 
     Scaffold(
         topBar = {
@@ -101,6 +104,14 @@ fun SearchScreen(
                     sources = sources,
                     selected = source,
                     onSelect = viewModel::selectSource,
+                )
+            }
+
+            if (source == MangaSource.SUWAYOMI && suwayomiSources.isNotEmpty()) {
+                SuwayomiSourceChips(
+                    options = suwayomiSources,
+                    selectedId = suwayomiSourceId,
+                    onSelect = viewModel::selectSuwayomiSource,
                 )
             }
 
@@ -149,6 +160,45 @@ private fun SourceChips(
                 onClick = { onSelect(source) },
                 label = { Text(source.title) },
             )
+        }
+    }
+}
+
+@Composable
+private fun SuwayomiSourceChips(
+    options: List<SuwayomiSourceOption>,
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    Column {
+        Text(
+            text = stringResource(R.string.search_server_sources),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+        )
+        androidx.compose.foundation.lazy.LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        ) {
+            item {
+                FilterChip(
+                    selected = selectedId == null,
+                    onClick = { onSelect(null) },
+                    label = { Text(stringResource(R.string.search_suwayomi_auto)) },
+                )
+            }
+            items(options.size) { index ->
+                val option = options[index]
+                FilterChip(
+                    selected = option.id == selectedId,
+                    onClick = { onSelect(option.id) },
+                    label = {
+                        val lang = option.lang.trim().uppercase()
+                        Text(if (lang.isBlank()) option.name else "${option.name} · $lang")
+                    },
+                )
+            }
         }
     }
 }

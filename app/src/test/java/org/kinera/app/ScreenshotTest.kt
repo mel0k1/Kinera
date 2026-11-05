@@ -314,6 +314,7 @@ private class FakeCatalog(
         query: String,
         source: MangaSource,
         offset: Int,
+        suwayomiSourceId: String?,
     ): Paged<Manga> = paged(offset)
 
     override suspend fun details(mangaId: String): Manga =

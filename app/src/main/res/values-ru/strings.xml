@@ -34,6 +34,8 @@
     <string name="search_hint">Найти мангу…</string>
     <string name="search_empty">Ничего не нашлось</string>
     <string name="search_empty_hint">Попробуйте другое название или короче запрос</string>
+    <string name="search_server_sources">Источник на сервере Suwayomi</string>
+    <string name="search_suwayomi_auto">Авто</string>
 
     <string name="history_title">История</string>
     <string name="history_empty">Истории пока нет</string>
