@@ -25,6 +25,8 @@ interface MangaLibApi {
         @Query("site_id[]") siteId: List<String> = listOf("1"),
         @Query("page") page: Int = 1,
         @Query("q") query: String? = null,
+        @Query("genres[]") genres: List<String> = emptyList(),
+        @Query("status[]") statuses: List<String> = emptyList(),
     ): MangaLibListResponse<MangaLibMangaShort>
 
     @GET("api/latest-updates")

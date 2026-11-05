@@ -73,6 +73,7 @@ data class MangaLibManga(
 
 @Serializable
 data class MangaLibLabel(
+    val id: Int = 0,
     val label: String? = null,
 )
 
@@ -138,6 +139,14 @@ data class MangaLibPage(
 @Serializable
 data class MangaLibConstants(
     val imageServers: List<MangaLibImageServer> = emptyList(),
+    val genres: List<MangaLibGenre> = emptyList(),
+)
+
+@Serializable
+data class MangaLibGenre(
+    val id: Int = 0,
+    val name: String? = null,
+    @SerialName("site_ids") val siteIds: List<Int> = emptyList(),
 )
 
 @Serializable

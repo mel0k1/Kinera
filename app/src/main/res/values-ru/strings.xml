@@ -144,6 +144,14 @@
     <string name="settings_mangadex_languages_hint">Если оба выключены — показывается манга на любых языках</string>
     <string name="language_english">English</string>
     <string name="language_russian">Русский</string>
+    <string name="explore_status_ongoing">Онгоинг</string>
+    <string name="explore_status_finished">Завершён</string>
+    <string name="explore_status_announced">Анонс</string>
+    <string name="explore_status_paused">Приостановлен</string>
+    <string name="explore_status_cancelled">Выпуск прекращён</string>
+    <string name="explore_filter_genres">Жанры</string>
+    <string name="explore_filter_genres_n">Жанры (%1$d)</string>
+    <string name="explore_filters_reset">Сбросить</string>
     <string name="settings_suwayomi_source">Источник каталога</string>
     <string name="settings_suwayomi_source_auto">Автоматически</string>
     <string name="settings_suwayomi_sources_loading">Загрузка источников…</string>

@@ -139,7 +139,7 @@ val dataModule = module {
     }
 
     single { MangaDexSource(get(), get()) }
-    single { MangaLibSource(get(), get()) }
+    single { MangaLibSource(get(), get(), get()) }
     single { KomgaSource(get(), get()) }
     single { SuwayomiSource(get(), get(), get()) }
     single { LocalSourceStorage(androidContext()) }

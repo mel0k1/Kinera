@@ -157,6 +157,14 @@
     <string name="settings_mangadex_languages_hint">With both off, manga in any language is shown</string>
     <string name="language_english">English</string>
     <string name="language_russian">Русский</string>
+    <string name="explore_status_ongoing">Ongoing</string>
+    <string name="explore_status_finished">Completed</string>
+    <string name="explore_status_announced">Announced</string>
+    <string name="explore_status_paused">On hold</string>
+    <string name="explore_status_cancelled">Cancelled</string>
+    <string name="explore_filter_genres">Genres</string>
+    <string name="explore_filter_genres_n">Genres (%1$d)</string>
+    <string name="explore_filters_reset">Reset</string>
     <string name="settings_suwayomi_source">Catalog source</string>
     <string name="settings_suwayomi_source_auto">Automatic</string>
     <string name="settings_suwayomi_sources_loading">Loading sources…</string>

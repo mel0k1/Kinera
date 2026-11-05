@@ -29,6 +29,8 @@ class SettingsRepository(private val context: Context) {
         val webtoonZoom = booleanPreferencesKey("webtoon_zoom")
         val readerRtl = booleanPreferencesKey("reader_rtl")
         val mangadexLanguages = stringSetPreferencesKey("mangadex_languages")
+        val mangalibStatuses = stringSetPreferencesKey("mangalib_statuses")
+        val mangalibGenres = stringSetPreferencesKey("mangalib_genres")
         val suwayomiSourceId = stringPreferencesKey("suwayomi_source_id")
         val komgaUrl = stringPreferencesKey("komga_url")
         val komgaUser = stringPreferencesKey("komga_user")
@@ -54,6 +56,14 @@ class SettingsRepository(private val context: Context) {
                 ?.filter { it in SUPPORTED_LANGUAGES }
                 ?.toSet()
                 ?: setOf("en", "ru"),
+            mangalibStatuses = prefs[Keys.mangalibStatuses]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            mangalibGenres = prefs[Keys.mangalibGenres]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet(),
             suwayomiSourceId = prefs[Keys.suwayomiSourceId].orEmpty(),
             komga = ServerConnection(
                 url = prefs[Keys.komgaUrl].orEmpty(),
@@ -121,6 +131,42 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setSuwayomiSource(sourceId: String) {
         context.dataStore.edit { it[Keys.suwayomiSourceId] = sourceId.trim() }
+    }
+
+    /** Toggles one MangaLib status id in the catalog filter. */
+    suspend fun setMangalibStatus(id: Int, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.mangalibStatuses]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet()
+            prefs[Keys.mangalibStatuses] =
+                (if (enabled) current + id else current - id)
+                    .map { it.toString() }
+                    .toSet()
+        }
+    }
+
+    /** Toggles one MangaLib genre id in the catalog filter. */
+    suspend fun setMangalibGenre(id: Int, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.mangalibGenres]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet()
+            prefs[Keys.mangalibGenres] =
+                (if (enabled) current + id else current - id)
+                    .map { it.toString() }
+                    .toSet()
+        }
+    }
+
+    /** Lifts every MangaLib catalog filter at once. */
+    suspend fun clearMangalibFilters() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(Keys.mangalibStatuses)
+            prefs.remove(Keys.mangalibGenres)
+        }
     }
 
     suspend fun setServer(server: ServerId, connection: ServerConnection) {

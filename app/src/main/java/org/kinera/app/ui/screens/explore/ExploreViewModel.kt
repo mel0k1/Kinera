@@ -18,6 +18,8 @@ import org.kinera.app.core.util.UiState
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.ImportResult
 import org.kinera.app.data.localsource.LocalSourceStorage
+import org.kinera.app.data.mangalib.MangaLibSource
+import org.kinera.app.data.mangalib.dto.MangaLibGenre
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.settings.SettingsRepository
 
@@ -32,6 +34,7 @@ class ExploreViewModel(
     private val localStorage: LocalSourceStorage,
     private val folderStorage: FolderSourceStorage,
     private val settings: SettingsRepository,
+    private val mangalib: MangaLibSource,
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ExploreTab>(ExploreTab.Popular)
@@ -80,6 +83,63 @@ class ExploreViewModel(
         viewModelScope.launch {
             settings.setMangadexLanguage(language, enable)
             if (_source.value == MangaSource.MANGADEX && _tab.value != ExploreTab.Local) {
+                reload()
+            }
+        }
+    }
+
+    /** MangaLib statuses enabled in the catalog filter; empty = no filter. */
+    val mangalibStatuses: StateFlow<Set<Int>> = settings.snapshot
+        .map { it.mangalibStatuses }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** MangaLib genres enabled in the catalog filter; empty = all genres. */
+    val mangalibGenres: StateFlow<Set<Int>> = settings.snapshot
+        .map { it.mangalibGenres }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Genres of the MangaLib site, loaded once for the filter sheet. */
+    private val _mangalibGenreOptions = MutableStateFlow<List<MangaLibGenre>>(emptyList())
+    val mangalibGenreOptions: StateFlow<List<MangaLibGenre>> = _mangalibGenreOptions.asStateFlow()
+
+    private var genresRequested = false
+
+    /** Fetches the genre list when the sheet is about to open; retries after a failure. */
+    fun loadMangalibGenresIfNeeded() {
+        if (genresRequested && _mangalibGenreOptions.value.isNotEmpty()) return
+        genresRequested = true
+        viewModelScope.launch {
+            _mangalibGenreOptions.value = mangalib.genres()
+        }
+    }
+
+    /** Toggles a MangaLib status chip and refreshes the MangaLib feed. */
+    fun toggleMangalibStatus(statusId: Int) {
+        val enable = statusId !in mangalibStatuses.value
+        viewModelScope.launch {
+            settings.setMangalibStatus(statusId, enable)
+            if (_source.value == MangaSource.MANGALIB && _tab.value != ExploreTab.Local) {
+                reload()
+            }
+        }
+    }
+
+    /**
+     * Toggles a MangaLib genre without touching the feed; the sheet caller
+     * reloads once on dismiss so ten taps do not fire ten requests.
+     */
+    fun toggleMangalibGenre(genreId: Int) {
+        val enable = genreId !in mangalibGenres.value
+        viewModelScope.launch {
+            settings.setMangalibGenre(genreId, enable)
+        }
+    }
+
+    /** Lifts every MangaLib filter and refreshes the feed when visible. */
+    fun clearMangalibFilters() {
+        viewModelScope.launch {
+            settings.clearMangalibFilters()
+            if (_source.value == MangaSource.MANGALIB && _tab.value != ExploreTab.Local) {
                 reload()
             }
         }

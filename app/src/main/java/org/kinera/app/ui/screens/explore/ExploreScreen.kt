@@ -17,8 +17,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.FolderZip
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -34,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -41,6 +45,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -62,6 +67,7 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
 import org.kinera.app.data.localsource.FolderSourceStorage
+import org.kinera.app.data.mangalib.dto.MangaLibGenre
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
@@ -73,6 +79,15 @@ private val CBZ_MIME_TYPES = arrayOf(
     "application/vnd.comicbook+zip",
     "application/x-zip-compressed",
     "application/octet-stream",
+)
+
+/** MangaLib statuses in catalog order; ids match the MangaLib API. */
+private val MANGALIB_STATUSES = listOf(
+    1 to R.string.explore_status_ongoing,
+    2 to R.string.explore_status_finished,
+    3 to R.string.explore_status_announced,
+    4 to R.string.explore_status_paused,
+    5 to R.string.explore_status_cancelled,
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -91,6 +106,12 @@ fun ExploreScreen(
     val source by viewModel.source.collectAsState()
     val sources by viewModel.availableSources.collectAsState()
     val mangadexLanguages by viewModel.mangadexLanguages.collectAsState()
+    val mangalibStatuses by viewModel.mangalibStatuses.collectAsState()
+    val mangalibGenres by viewModel.mangalibGenres.collectAsState()
+    val mangalibGenreOptions by viewModel.mangalibGenreOptions.collectAsState()
+
+    var showGenreSheet by remember { mutableStateOf(false) }
+    var filtersDirty by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -200,8 +221,15 @@ fun ExploreScreen(
                         sources = sources,
                         source = source,
                         mangadexLanguages = mangadexLanguages,
+                        mangalibStatuses = mangalibStatuses,
+                        mangalibGenres = mangalibGenres,
                         onSourceSelect = viewModel::selectSource,
                         onToggleLanguage = viewModel::toggleMangadexLanguage,
+                        onToggleMangalibStatus = viewModel::toggleMangalibStatus,
+                        onOpenGenres = {
+                            viewModel.loadMangalibGenresIfNeeded()
+                            showGenreSheet = true
+                        },
                         onTabSwitch = viewModel::switchTab,
                         onLoadMore = viewModel::loadMore,
                         onMangaClick = onMangaClick,
@@ -209,6 +237,27 @@ fun ExploreScreen(
                 }
             }
         }
+    }
+
+    if (showGenreSheet) {
+        MangaLibGenreSheet(
+            genres = mangalibGenreOptions,
+            selected = mangalibGenres,
+            onToggle = {
+                filtersDirty = true
+                viewModel.toggleMangalibGenre(it)
+            },
+            onReset = {
+                filtersDirty = false
+                viewModel.clearMangalibFilters()
+            },
+            onDismiss = {
+                showGenreSheet = false
+                if (filtersDirty && source == MangaSource.MANGALIB) {
+                    viewModel.reload()
+                }
+            },
+        )
     }
 }
 
@@ -254,8 +303,12 @@ private fun ExploreFeed(
     sources: List<MangaSource>,
     source: MangaSource,
     mangadexLanguages: Set<String>,
+    mangalibStatuses: Set<Int>,
+    mangalibGenres: Set<Int>,
     onSourceSelect: (MangaSource) -> Unit,
     onToggleLanguage: (String) -> Unit,
+    onToggleMangalibStatus: (Int) -> Unit,
+    onOpenGenres: () -> Unit,
     onTabSwitch: (ExploreTab) -> Unit,
     onLoadMore: () -> Unit,
     onMangaClick: (Manga) -> Unit,
@@ -296,6 +349,16 @@ private fun ExploreFeed(
                 LanguageChips(
                     languages = mangadexLanguages,
                     onToggle = onToggleLanguage,
+                )
+            }
+        }
+        if (source == MangaSource.MANGALIB) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                MangaLibFilters(
+                    selectedStatuses = mangalibStatuses,
+                    selectedGenres = mangalibGenres,
+                    onToggleStatus = onToggleMangalibStatus,
+                    onOpenGenres = onOpenGenres,
                 )
             }
         }
@@ -398,6 +461,103 @@ private fun LanguageChips(
             onClick = { onToggle("ru") },
             label = { Text(stringResource(R.string.language_russian)) },
         )
+    }
+}
+
+/**
+ * MangaLib catalog filters: status chips plus a genres chip that opens the
+ * bottom sheet. A status chip off means that status is filtered out; no
+ * chip on means the whole catalog.
+ */
+@Composable
+private fun MangaLibFilters(
+    selectedStatuses: Set<Int>,
+    selectedGenres: Set<Int>,
+    onToggleStatus: (Int) -> Unit,
+    onOpenGenres: () -> Unit,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        item {
+            Icon(
+                Icons.Rounded.FilterList,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        items(MANGALIB_STATUSES.size) { index ->
+            val (statusId, label) = MANGALIB_STATUSES[index]
+            FilterChip(
+                selected = statusId in selectedStatuses,
+                onClick = { onToggleStatus(statusId) },
+                label = { Text(stringResource(label)) },
+            )
+        }
+        item {
+            FilterChip(
+                selected = selectedGenres.isNotEmpty(),
+                onClick = onOpenGenres,
+                label = {
+                    Text(
+                        if (selectedGenres.isEmpty()) {
+                            stringResource(R.string.explore_filter_genres)
+                        } else {
+                            stringResource(R.string.explore_filter_genres_n, selectedGenres.size)
+                        },
+                    )
+                },
+            )
+        }
+    }
+}
+
+/**
+ * MangaLib genre picker. Chips apply instantly; the caller reloads the feed
+ * once on dismiss so a burst of taps does not fire a request per tap.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun MangaLibGenreSheet(
+    genres: List<MangaLibGenre>,
+    selected: Set<Int>,
+    onToggle: (Int) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.explore_filter_genres),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onReset) {
+                    Text(stringResource(R.string.explore_filters_reset))
+                }
+            }
+            FlowRow(
+                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                genres.forEach { genre ->
+                    FilterChip(
+                        selected = genre.id in selected,
+                        onClick = { onToggle(genre.id) },
+                        label = { Text(genre.name.orEmpty()) },
+                    )
+                }
+            }
+        }
     }
 }
 

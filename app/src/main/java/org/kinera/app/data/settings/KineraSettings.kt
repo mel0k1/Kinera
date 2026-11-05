@@ -51,6 +51,10 @@ data class KineraSettings(
     val readerRtl: Boolean = false,
     /** MangaDex languages with available chapters, e.g. ["en", "ru"]. Empty = all languages. */
     val mangadexLanguages: Set<String> = setOf("en", "ru"),
+    /** MangaLib status ids kept in the catalog, e.g. [1, 2]. Empty = all statuses. */
+    val mangalibStatuses: Set<Int> = emptySet(),
+    /** MangaLib genre ids kept in the catalog. Empty = all genres. */
+    val mangalibGenres: Set<Int> = emptySet(),
     /** Preferred source id inside the Suwayomi server; empty = automatic pick. */
     val suwayomiSourceId: String = "",
     val komga: ServerConnection = ServerConnection(),

@@ -13,9 +13,12 @@ import org.kinera.app.core.model.MangaTag
 import org.kinera.app.core.model.Paged
 import org.kinera.app.data.mangalib.dto.MangaLibChapter
 import org.kinera.app.data.mangalib.dto.MangaLibConstants
+import org.kinera.app.data.mangalib.dto.MangaLibGenre
 import org.kinera.app.data.mangalib.dto.MangaLibImageServer
+import org.kinera.app.data.mangalib.dto.MangaLibLabel
 import org.kinera.app.data.mangalib.dto.MangaLibManga
 import org.kinera.app.data.mangalib.dto.MangaLibMangaShort
+import org.kinera.app.data.settings.SettingsRepository
 import java.time.OffsetDateTime
 
 /**
@@ -28,10 +31,15 @@ import java.time.OffsetDateTime
  *
  * Page images live on separate CDN servers; their availability differs by
  * region, so the source probes them in order and caches the first that works.
+ *
+ * The catalog honors the genre / status filters stored in Settings (empty
+ * sets mean "everything"); they apply to Popular and to search, not to the
+ * latest-updates feed, which the API does not filter.
  */
 class MangaLibSource(
     private val api: MangaLibApi,
     private val client: OkHttpClient,
+    private val settings: SettingsRepository,
 ) {
 
     val source: MangaSource = MangaSource.MANGALIB
@@ -100,9 +108,32 @@ class MangaLibSource(
 
     /* ----- catalog ----- */
 
+    /**
+     * Genres available on the MangaLib site, alphabetically; used by the
+     * filter sheet in Explore. Cached for the lifetime of the process.
+     */
+    suspend fun genres(): List<MangaLibGenre> {
+        genreCache?.let { return it }
+        val constants = runCatching {
+            api.constants(fields = listOf("genres")).data
+        }.getOrNull()
+        val list = constants?.genres
+            ?.filter { SITE_ID in it.siteIds && !it.name.isNullOrBlank() }
+            ?.sortedBy { it.name!! }
+            .orEmpty()
+        if (list.isNotEmpty()) genreCache = list
+        return list
+    }
+
     private suspend fun catalog(offset: Int, query: String?): Paged<Manga> {
         val page = offset / PAGE_SIZE + 1
-        val response = api.catalog(page = page, query = query)
+        val filters = settings.snapshot.value
+        val response = api.catalog(
+            page = page,
+            query = query,
+            genres = filters.mangalibGenres.map { it.toString() },
+            statuses = filters.mangalibStatuses.map { it.toString() },
+        )
         return Paged(
             items = response.data.map { it.toDomain() },
             offset = offset,
@@ -133,7 +164,7 @@ class MangaLibSource(
             .mapNotNull { it.name?.takeIf { n -> n.isNotBlank() } }
             .distinct()
             .map { MangaTag(id = it, title = it) },
-        state = mapState(status?.label),
+        state = mapState(status),
         author = authors.firstOrNull()?.name ?: artists.firstOrNull()?.name,
         chaptersCount = 0,
     )
@@ -156,11 +187,12 @@ class MangaLibSource(
         )
     }
 
-    private fun mapState(label: String?): MangaState = when (label) {
-        "Продолжается" -> MangaState.ONGOING
-        "Завершён" -> MangaState.FINISHED
-        "Заморожен" -> MangaState.PAUSED
-        "Заброшен" -> MangaState.CANCELLED
+    /** MangaLib status ids: 1 ongoing, 2 finished, 3 announced, 4 paused, 5 dropped. */
+    private fun mapState(status: MangaLibLabel?): MangaState = when (status?.id) {
+        1 -> MangaState.ONGOING
+        2 -> MangaState.FINISHED
+        4 -> MangaState.PAUSED
+        5 -> MangaState.CANCELLED
         else -> MangaState.UNKNOWN
     }
 
@@ -175,6 +207,9 @@ class MangaLibSource(
 
     @Volatile
     private var constantsCache: MangaLibConstants? = null
+
+    @Volatile
+    private var genreCache: List<MangaLibGenre>? = null
 
     /**
      * Picks the CDN prefix for page images. Servers are tried in the order
@@ -224,6 +259,7 @@ class MangaLibSource(
 
     companion object {
         const val PAGE_SIZE = 24
+        const val SITE_ID = 1
         const val MANGA_ID_PREFIX = "mlib:"
         const val CHAPTER_ID_PREFIX = "mlibch:"
 

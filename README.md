@@ -27,6 +27,7 @@ Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](http
 - **Library** — favourites with custom categories, long-press to remove
 - **Explore** — popular and latest titles, endless scroll, per-source tabs
 - **Sources** — **MangaDex** (with an RU/EN language filter) and **MangaLib** — the largest Russian catalog — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
+- **MangaLib filters** — status chips and a genre picker right in Explore (and search), persisted between runs
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
 - **Search** — debounced title search with load-more, across every configured source
