@@ -36,14 +36,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.kinera.app.R
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
-import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.MangaCard
+import org.kinera.app.ui.components.SuwayomiSourceChips
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -63,6 +64,7 @@ fun SearchScreen(
     val hasNext by viewModel.hasNext.collectAsState()
     val suwayomiSources by viewModel.suwayomiSources.collectAsState()
     val suwayomiSourceId by viewModel.suwayomiSourceId.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -124,7 +126,7 @@ fun SearchScreen(
             when {
                 error != null -> EmptyState(
                     title = stringResource(R.string.error_generic),
-                    hint = stringResource(R.string.error_network),
+                    hint = context.getString(R.string.error_source_unavailable, source.title),
                 )
                 query.isBlank() -> {}
                 results.isEmpty() && !loading -> EmptyState(
@@ -160,45 +162,6 @@ private fun SourceChips(
                 onClick = { onSelect(source) },
                 label = { Text(source.title) },
             )
-        }
-    }
-}
-
-@Composable
-private fun SuwayomiSourceChips(
-    options: List<SuwayomiSourceOption>,
-    selectedId: String?,
-    onSelect: (String?) -> Unit,
-) {
-    Column {
-        Text(
-            text = stringResource(R.string.search_server_sources),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-        )
-        androidx.compose.foundation.lazy.LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        ) {
-            item {
-                FilterChip(
-                    selected = selectedId == null,
-                    onClick = { onSelect(null) },
-                    label = { Text(stringResource(R.string.search_suwayomi_auto)) },
-                )
-            }
-            items(options.size) { index ->
-                val option = options[index]
-                FilterChip(
-                    selected = option.id == selectedId,
-                    onClick = { onSelect(option.id) },
-                    label = {
-                        val lang = option.lang.trim().uppercase()
-                        Text(if (lang.isBlank()) option.name else "${option.name} · $lang")
-                    },
-                )
-            }
         }
     }
 }

@@ -26,6 +26,8 @@ import org.kinera.app.data.remanga.RemangaSource
 import org.kinera.app.data.remanga.dto.RemangaGenre
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.settings.SettingsRepository
+import org.kinera.app.data.suwayomi.SuwayomiSource
+import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 
 sealed interface ExploreTab {
     data object Popular : ExploreTab
@@ -41,6 +43,7 @@ class ExploreViewModel(
     private val mangalib: MangaLibSource,
     private val remanga: RemangaSource,
     private val desume: DesuMeSource,
+    private val suwayomi: SuwayomiSource,
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ExploreTab>(ExploreTab.Popular)
@@ -49,6 +52,16 @@ class ExploreViewModel(
     /** Catalog source the Popular / Latest tabs read from. */
     private val _source = MutableStateFlow(MangaSource.MANGADEX)
     val source: StateFlow<MangaSource> = _source.asStateFlow()
+
+    /** Sources installed on the Suwayomi server, for the second chip row. */
+    private val _suwayomiSources = MutableStateFlow<List<SuwayomiSourceOption>>(emptyList())
+    val suwayomiSources: StateFlow<List<SuwayomiSourceOption>> = _suwayomiSources.asStateFlow()
+
+    /** Picked server source for Suwayomi feeds; null = the automatic pick. */
+    private val _suwayomiSourceId = MutableStateFlow<String?>(null)
+    val suwayomiSourceId: StateFlow<String?> = _suwayomiSourceId.asStateFlow()
+
+    private var suwayomiSourcesRequested = false
 
     private val _items = MutableStateFlow<List<Manga>>(emptyList())
     val items: StateFlow<List<Manga>> = _items.asStateFlow()
@@ -277,7 +290,33 @@ class ExploreViewModel(
         if (_tab.value == ExploreTab.Local) {
             _tab.value = ExploreTab.Popular
         }
+        if (source == MangaSource.SUWAYOMI) {
+            loadSuwayomiSources()
+        } else {
+            // The server source only applies to Suwayomi feeds.
+            _suwayomiSourceId.value = null
+        }
         reload()
+    }
+
+    /** Picks which source of the Suwayomi server the feed reads from. */
+    fun selectSuwayomiSource(sourceId: String?) {
+        if (sourceId == _suwayomiSourceId.value) return
+        _suwayomiSourceId.value = sourceId
+        reload()
+    }
+
+    /**
+     * Fetches the sources installed on the Suwayomi server once per
+     * screen; a failure leaves the row hidden and is retried the next
+     * time Suwayomi is picked.
+     */
+    private fun loadSuwayomiSources() {
+        if (suwayomiSourcesRequested && _suwayomiSources.value.isNotEmpty()) return
+        suwayomiSourcesRequested = true
+        viewModelScope.launch {
+            _suwayomiSources.value = runCatching { suwayomi.availableSources() }.getOrDefault(emptyList())
+        }
     }
 
     fun reload() {
@@ -325,8 +364,16 @@ class ExploreViewModel(
         viewModelScope.launch {
             runCatching {
                 when (_tab.value) {
-                    ExploreTab.Popular -> catalog.popular(source = _source.value, offset = nextOffset)
-                    ExploreTab.Latest -> catalog.latest(source = _source.value, offset = nextOffset)
+                    ExploreTab.Popular -> catalog.popular(
+                        source = _source.value,
+                        offset = nextOffset,
+                        suwayomiSourceId = activeSuwayomiSourceId(),
+                    )
+                    ExploreTab.Latest -> catalog.latest(
+                        source = _source.value,
+                        offset = nextOffset,
+                        suwayomiSourceId = activeSuwayomiSourceId(),
+                    )
                     ExploreTab.Local -> error("Local archive list is driven by storage")
                 }
             }.onSuccess { page ->
@@ -342,4 +389,8 @@ class ExploreViewModel(
             loading = false
         }
     }
+
+    /** Server source for the running feed, only meaningful for Suwayomi. */
+    private fun activeSuwayomiSourceId(): String? =
+        if (_source.value == MangaSource.SUWAYOMI) _suwayomiSourceId.value else null
 }

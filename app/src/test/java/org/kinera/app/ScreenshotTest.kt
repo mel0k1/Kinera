@@ -306,9 +306,17 @@ private class FakeCatalog(
     folders = FolderMangaSource(FolderSourceStorage(context)),
 ) {
 
-    override suspend fun popular(source: MangaSource, offset: Int): Paged<Manga> = paged(offset)
+    override suspend fun popular(
+        source: MangaSource,
+        offset: Int,
+        suwayomiSourceId: String?,
+    ): Paged<Manga> = paged(offset)
 
-    override suspend fun latest(source: MangaSource, offset: Int): Paged<Manga> = paged(offset)
+    override suspend fun latest(
+        source: MangaSource,
+        offset: Int,
+        suwayomiSourceId: String?,
+    ): Paged<Manga> = paged(offset)
 
     override suspend fun search(
         query: String,

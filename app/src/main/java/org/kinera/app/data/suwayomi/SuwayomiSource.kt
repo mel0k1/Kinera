@@ -111,11 +111,17 @@ class SuwayomiSource(
     @Volatile
     private var preferredSourceIdCacheFor: String? = null
 
-    suspend fun popular(offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
-        fetch(offset, type = "POPULAR")
+    suspend fun popular(
+        offset: Int,
+        limit: Int = PAGE_SIZE,
+        serverSourceId: String? = null,
+    ): Paged<Manga> = fetch(offset, type = "POPULAR", serverSourceId = serverSourceId)
 
-    suspend fun latest(offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
-        fetch(offset, type = "LATEST")
+    suspend fun latest(
+        offset: Int,
+        limit: Int = PAGE_SIZE,
+        serverSourceId: String? = null,
+    ): Paged<Manga> = fetch(offset, type = "LATEST", serverSourceId = serverSourceId)
 
     /**
      * Search inside one source of the server. When [serverSourceId] is null

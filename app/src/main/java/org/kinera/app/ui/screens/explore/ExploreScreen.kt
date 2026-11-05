@@ -67,10 +67,12 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
 import org.kinera.app.data.localsource.FolderSourceStorage
+import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
 import org.kinera.app.ui.components.MangaCard
+import org.kinera.app.ui.components.SuwayomiSourceChips
 import org.koin.compose.viewmodel.koinViewModel
 
 private val CBZ_MIME_TYPES = arrayOf(
@@ -124,6 +126,8 @@ fun ExploreScreen(
     val remangaGenreOptions by viewModel.remangaGenreOptions.collectAsState()
     val desumeGenres by viewModel.desumeGenres.collectAsState()
     val desumeGenreOptions by viewModel.desumeGenreOptions.collectAsState()
+    val suwayomiSources by viewModel.suwayomiSources.collectAsState()
+    val suwayomiSourceId by viewModel.suwayomiSourceId.collectAsState()
 
     var genreSheetFor by remember { mutableStateOf<MangaSource?>(null) }
     var filtersDirty by remember { mutableStateOf(false) }
@@ -226,7 +230,7 @@ fun ExploreScreen(
                 when (state) {
                     is UiState.Loading -> LoadingState()
                     is UiState.Error -> ErrorState(
-                        message = stringResource(R.string.error_network),
+                        message = context.getString(R.string.error_source_unavailable, source.title),
                         onRetry = viewModel::reload,
                     )
                     is UiState.Success -> ExploreFeed(
@@ -238,6 +242,8 @@ fun ExploreScreen(
                         mangadexLanguages = mangadexLanguages,
                         mangalibStatuses = mangalibStatuses,
                         remangaStatuses = remangaStatuses,
+                        suwayomiSources = suwayomiSources,
+                        suwayomiSourceId = suwayomiSourceId,
                         selectedGenreCount = when (source) {
                             MangaSource.MANGALIB -> mangalibGenres.size
                             MangaSource.REMANGA -> remangaGenres.size
@@ -245,6 +251,7 @@ fun ExploreScreen(
                             else -> 0
                         },
                         onSourceSelect = viewModel::selectSource,
+                        onSelectSuwayomiSource = viewModel::selectSuwayomiSource,
                         onToggleLanguage = viewModel::toggleMangadexLanguage,
                         onToggleMangalibStatus = viewModel::toggleMangalibStatus,
                         onToggleRemangaStatus = viewModel::toggleRemangaStatus,
@@ -356,8 +363,11 @@ private fun ExploreFeed(
     mangadexLanguages: Set<String>,
     mangalibStatuses: Set<Int>,
     remangaStatuses: Set<Int>,
+    suwayomiSources: List<SuwayomiSourceOption>,
+    suwayomiSourceId: String?,
     selectedGenreCount: Int,
     onSourceSelect: (MangaSource) -> Unit,
+    onSelectSuwayomiSource: (String?) -> Unit,
     onToggleLanguage: (String) -> Unit,
     onToggleMangalibStatus: (Int) -> Unit,
     onToggleRemangaStatus: (Int) -> Unit,
@@ -402,6 +412,15 @@ private fun ExploreFeed(
                 LanguageChips(
                     languages = mangadexLanguages,
                     onToggle = onToggleLanguage,
+                )
+            }
+        }
+        if (source == MangaSource.SUWAYOMI && suwayomiSources.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                SuwayomiSourceChips(
+                    options = suwayomiSources,
+                    selectedId = suwayomiSourceId,
+                    onSelect = onSelectSuwayomiSource,
                 )
             }
         }

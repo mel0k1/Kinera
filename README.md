@@ -26,13 +26,13 @@ Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](http
 
 - **Library** — favourites with custom categories: long-press a cover to move the title between categories, and long-press a category chip to drag it into another order
 - **Explore** — popular and latest titles, endless scroll, per-source tabs
-- **Sources** — **MangaDex** (with an RU/EN language filter), **MangaLib**, **Remanga** and **Desu.me** — Russian catalogs — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
+- **Sources** — **MangaDex** (with an RU/EN language filter), **MangaLib**, **Remanga** and **Desu** — Russian catalogs — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
 - **Library auto-update** — Kinera checks favourites for new chapters in the background (every 6/12/24 hours, configurable), badges them on the shelf and clears the badge when you open the title; there is also a "check now" button in the Library toolbar
 - **MangaLib / Remanga / Desu.me filters** — status chips and a genre picker right in Explore (and search), persisted between runs
 - **Backup & restore** — export the whole library (favourites, categories, history, page bookmarks) to a human-readable JSON file and merge it back after a reinstall or on another device; the file is exchanged through the system file picker, categories are matched by name
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
-- **Search** — debounced title search with load-more, across every configured source; with Suwayomi you pick which source installed on the server to search in, right above the results
+- **Search** — debounced title search with load-more, across every configured source; with Suwayomi you pick which source installed on the server to search or read the Explore feeds from, right above the results
 - **Reader** — webtoon (continuous scroll) and paged modes, switchable on the fly; pinch-to-zoom and double-tap zoom in both modes; screen stays awake while you read
 - **History** — automatic reading progress, resume where you stopped
 - **Bookmarks** — mark any page from the reader and jump back to it from the manga details

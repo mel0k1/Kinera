@@ -34,27 +34,33 @@ open class CatalogRepository(
     private val folders: FolderMangaSource,
 ) {
 
-    open suspend fun popular(source: MangaSource = MangaSource.MANGADEX, offset: Int = 0): Paged<Manga> =
-        when (source) {
-            MangaSource.MANGADEX -> mangadex.popular(offset)
-            MangaSource.MANGALIB -> mangalib.popular(offset)
-            MangaSource.REMANGA -> remanga.popular(offset)
-            MangaSource.DESUME -> desume.popular(offset)
-            MangaSource.KOMGA -> komga.popular(offset)
-            MangaSource.SUWAYOMI -> suwayomi.popular(offset)
-            MangaSource.LOCAL -> Paged(emptyList())
-        }
+    open suspend fun popular(
+        source: MangaSource = MangaSource.MANGADEX,
+        offset: Int = 0,
+        suwayomiSourceId: String? = null,
+    ): Paged<Manga> = when (source) {
+        MangaSource.MANGADEX -> mangadex.popular(offset)
+        MangaSource.MANGALIB -> mangalib.popular(offset)
+        MangaSource.REMANGA -> remanga.popular(offset)
+        MangaSource.DESUME -> desume.popular(offset)
+        MangaSource.KOMGA -> komga.popular(offset)
+        MangaSource.SUWAYOMI -> suwayomi.popular(offset, serverSourceId = suwayomiSourceId)
+        MangaSource.LOCAL -> Paged(emptyList())
+    }
 
-    open suspend fun latest(source: MangaSource = MangaSource.MANGADEX, offset: Int = 0): Paged<Manga> =
-        when (source) {
-            MangaSource.MANGADEX -> mangadex.latest(offset)
-            MangaSource.MANGALIB -> mangalib.latest(offset)
-            MangaSource.REMANGA -> remanga.latest(offset)
-            MangaSource.DESUME -> desume.latest(offset)
-            MangaSource.KOMGA -> komga.latest(offset)
-            MangaSource.SUWAYOMI -> suwayomi.latest(offset)
-            MangaSource.LOCAL -> Paged(emptyList())
-        }
+    open suspend fun latest(
+        source: MangaSource = MangaSource.MANGADEX,
+        offset: Int = 0,
+        suwayomiSourceId: String? = null,
+    ): Paged<Manga> = when (source) {
+        MangaSource.MANGADEX -> mangadex.latest(offset)
+        MangaSource.MANGALIB -> mangalib.latest(offset)
+        MangaSource.REMANGA -> remanga.latest(offset)
+        MangaSource.DESUME -> desume.latest(offset)
+        MangaSource.KOMGA -> komga.latest(offset)
+        MangaSource.SUWAYOMI -> suwayomi.latest(offset, serverSourceId = suwayomiSourceId)
+        MangaSource.LOCAL -> Paged(emptyList())
+    }
 
     open suspend fun search(
         query: String,

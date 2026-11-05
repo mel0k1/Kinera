@@ -34,8 +34,8 @@
     <string name="search_hint">Найти мангу…</string>
     <string name="search_empty">Ничего не нашлось</string>
     <string name="search_empty_hint">Попробуйте другое название или короче запрос</string>
-    <string name="search_server_sources">Источник на сервере Suwayomi</string>
-    <string name="search_suwayomi_auto">Авто</string>
+    <string name="suwayomi_server_sources">Источник на сервере Suwayomi</string>
+    <string name="suwayomi_source_auto">Авто</string>
 
     <string name="history_title">История</string>
     <string name="history_empty">Истории пока нет</string>
@@ -189,7 +189,6 @@
     <string name="settings_source_code">Исходный код</string>
     <string name="settings_license">Лицензия</string>
     <string name="settings_license_value">GNU GPL-3.0</string>
-    <string name="settings_credit">Вдохновлено Kotatsu. Собрано на Material 3 Expressive.</string>
 
     <string name="action_retry">Повторить</string>
     <string name="action_close">Закрыть</string>
@@ -197,6 +196,7 @@
     <string name="action_more">Ещё</string>
     <string name="error_generic">Что-то пошло не так</string>
     <string name="error_network">Проверьте подключение и попробуйте снова</string>
+    <string name="error_source_unavailable">%1$s может быть недоступен в вашем регионе или сети. Попробуйте другой источник.</string>
     <string name="loading">Загрузка…</string>
     <string name="status_ongoing">Выходит</string>
     <string name="status_finished">Завершена</string>
