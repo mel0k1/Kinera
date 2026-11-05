@@ -206,21 +206,21 @@ class MangaLibSource(
         val bySite = constants.imageServers.filter { 1 in it.siteIds }
         val ordered = SERVER_ORDER.mapNotNull { id -> bySite.firstOrNull { it.id == id } }
         val rest = bySite.filter { it.id !in SERVER_ORDER }
-        return (ordered + rest).mapNotNull(MangaLibImageServer::usableUrl)
+        return (ordered + rest).mapNotNull { it.usableUrl() }
     }
 
     private fun MangaLibImageServer.usableUrl(): String? =
         url.takeIf { it.startsWith("http") }?.trimEnd('/')
 
-    private fun probeImage(url: String): Boolean = runCatching {
-        withContext(Dispatchers.IO) {
+    private suspend fun probeImage(url: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
             client.newCall(
                 Request.Builder().url(url).head().build(),
             ).execute().use { response ->
                 response.isSuccessful && response.header("content-length", "0")?.toIntOrNull() != 0
             }
-        }
-    }.getOrDefault(false)
+        }.getOrDefault(false)
+    }
 
     companion object {
         const val PAGE_SIZE = 24
