@@ -321,12 +321,6 @@ fun SettingsScreen(
                     )
                 }
             }
-            Text(
-                text = stringResource(R.string.settings_credit),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
-            )
         }
     }
 }
