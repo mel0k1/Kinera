@@ -35,6 +35,8 @@ import org.kinera.app.data.localsource.LocalMangaSource
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.mangadex.MangaDexApi
 import org.kinera.app.data.mangadex.MangaDexSource
+import org.kinera.app.data.mangalib.MangaLibApi
+import org.kinera.app.data.mangalib.MangaLibSource
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.repository.LibraryRepository
 import org.kinera.app.data.settings.SettingsRepository
@@ -275,6 +277,11 @@ private class FakeCatalog(
     private val pages: List<MangaPage>,
 ) : CatalogRepository(
     mangadex = MangaDexSource(retrofitOf(MangaDexApi::class.java), SettingsRepository(context)),
+    mangalib = MangaLibSource(
+        retrofitOf(MangaLibApi::class.java),
+        okhttp3.OkHttpClient(),
+        SettingsRepository(context),
+    ),
     komga = KomgaSource(retrofitOf(KomgaApi::class.java), SettingsRepository(context)),
     suwayomi = SuwayomiSource(
         retrofitOf(SuwayomiApi::class.java),
