@@ -18,13 +18,9 @@ import org.kinera.app.data.settings.ServerId
 import org.kinera.app.data.settings.SettingsRepository
 import org.kinera.app.data.settings.ThemeMode
 import org.kinera.app.data.repository.LibraryUpdateScheduler
-import org.kinera.app.data.suwayomi.SuwayomiSource
-import org.kinera.app.data.suwayomi.SuwayomiSourceOption
-import org.kinera.app.core.util.UiState
 
 class SettingsViewModel(
     private val repository: SettingsRepository,
-    private val suwayomi: SuwayomiSource,
     private val libraryUpdateScheduler: LibraryUpdateScheduler,
     private val backupManager: BackupManager,
 ) : ViewModel() {
@@ -60,41 +56,6 @@ class SettingsViewModel(
 
     fun saveServer(server: ServerId, connection: ServerConnection) = viewModelScope.launch {
         repository.setServer(server, connection.copy(url = ServerConnection.normalizeUrl(connection.url)))
-        if (server == ServerId.SUWAYOMI) loadSuwayomiSources(force = true)
-    }
-
-    /**
-     * Sources installed on the Suwayomi server, for the picker. Loaded when
-     * the screen opens and reloaded on demand; errors surface in the card
-     * instead of crashing.
-     */
-    private val _suwayomiSources = MutableStateFlow<UiState<List<SuwayomiSourceOption>>>(UiState.Loading)
-    val suwayomiSources: StateFlow<UiState<List<SuwayomiSourceOption>>> = _suwayomiSources.asStateFlow()
-
-    private var suwayomiLoadGeneration = 0
-
-    init {
-        loadSuwayomiSources()
-    }
-
-    fun loadSuwayomiSources(force: Boolean = false) {
-        if (!repository.snapshot.value.suwayomi.isConfigured) {
-            suwayomiLoadGeneration++
-            _suwayomiSources.value = UiState.Error(null)
-            return
-        }
-        if (!force && _suwayomiSources.value is UiState.Loading) return
-        val generation = ++suwayomiLoadGeneration
-        _suwayomiSources.value = UiState.Loading
-        viewModelScope.launch {
-            runCatching { suwayomi.availableSources() }
-                .onSuccess { if (generation == suwayomiLoadGeneration) _suwayomiSources.value = UiState.Success(it) }
-                .onFailure { if (generation == suwayomiLoadGeneration) _suwayomiSources.value = UiState.Error(it.message) }
-        }
-    }
-
-    fun selectSuwayomiSource(sourceId: String) = viewModelScope.launch {
-        repository.setSuwayomiSource(sourceId)
     }
 
     /* ----- library backup ----- */

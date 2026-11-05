@@ -163,6 +163,8 @@
     <string name="settings_sources">Источники</string>
     <string name="settings_mangadex_languages">Языки MangaDex</string>
     <string name="settings_mangadex_languages_hint">Если оба выключены — показывается манга на любых языках</string>
+    <string name="sources_title">Источники</string>
+    <string name="sources_subtitle">Фильтры каталогов, языки и серверы</string>
     <string name="language_english">English</string>
     <string name="language_russian">Русский</string>
     <string name="explore_status_ongoing">Онгоинг</string>

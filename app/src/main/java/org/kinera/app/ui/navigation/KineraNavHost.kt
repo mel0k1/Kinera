@@ -22,6 +22,7 @@ import org.kinera.app.ui.screens.library.LibraryScreen
 import org.kinera.app.ui.screens.reader.ReaderScreen
 import org.kinera.app.ui.screens.search.SearchScreen
 import org.kinera.app.ui.screens.settings.SettingsScreen
+import org.kinera.app.ui.screens.sources.SourcesScreen
 import kotlinx.serialization.Serializable
 
 @Serializable data object LibraryRoute
@@ -29,6 +30,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object DownloadsRoute
 @Serializable data object HistoryRoute
 @Serializable data object SettingsRoute
+@Serializable data object SourcesRoute
 @Serializable data object SearchRoute
 @Serializable data class MangaRoute(val mangaId: String)
 @Serializable data class ReaderRoute(val mangaId: String, val chapterId: String, val page: Int = 0)
@@ -98,7 +100,14 @@ fun KineraNavHost(
             )
         }
         composable<SettingsRoute> {
-            SettingsScreen()
+            SettingsScreen(
+                onOpenSources = { navController.navigate(SourcesRoute) },
+            )
+        }
+        composable<SourcesRoute> {
+            SourcesScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
         composable<SearchRoute> {
             SearchScreen(

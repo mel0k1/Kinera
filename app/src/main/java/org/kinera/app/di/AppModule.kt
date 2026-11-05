@@ -47,6 +47,7 @@ import org.kinera.app.ui.screens.library.LibraryViewModel
 import org.kinera.app.ui.screens.reader.ReaderViewModel
 import org.kinera.app.ui.screens.search.SearchViewModel
 import org.kinera.app.ui.screens.settings.SettingsViewModel
+import org.kinera.app.ui.screens.sources.SourcesViewModel
 import org.kinera.app.worker.KineraWorkerFactory
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -219,6 +220,7 @@ val uiModule = module {
     viewModelOf(::SearchViewModel)
     viewModelOf(::HistoryViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::SourcesViewModel)
     viewModelOf(::DownloadsViewModel)
     viewModel { (mangaId: String) -> DetailsViewModel(get(), get(), get(), mangaId) }
     viewModel { (mangaId: String, chapterId: String, startPage: Int) ->

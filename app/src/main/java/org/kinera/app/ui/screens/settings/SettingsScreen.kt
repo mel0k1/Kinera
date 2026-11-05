@@ -6,10 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,22 +15,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatTextdirectionRToL
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -46,38 +33,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Contrast
-import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.StayCurrentLandscape
 import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.Sync
 import org.kinera.app.BuildConfig
 import org.kinera.app.R
-import org.kinera.app.core.util.UiState
 import org.kinera.app.data.settings.ReaderMode
-import org.kinera.app.data.settings.ServerConnection
-import org.kinera.app.data.settings.ServerId
 import org.kinera.app.data.settings.ThemeMode
-import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val REPO_URL = "https://github.com/mel0k1/Kinera"
@@ -85,10 +63,10 @@ private const val REPO_URL = "https://github.com/mel0k1/Kinera"
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(
+    onOpenSources: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val settings by viewModel.settings.collectAsState()
-    val suwayomiSources by viewModel.suwayomiSources.collectAsState()
     val backupState by viewModel.backupState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -299,60 +277,12 @@ fun SettingsScreen(
             HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
             SectionHeader(stringResource(R.string.settings_sources), Icons.Rounded.Language)
 
-            Text(
-                text = stringResource(R.string.settings_mangadex_languages),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(horizontal = 16.dp),
+            ActionRow(
+                icon = Icons.Rounded.Language,
+                title = stringResource(R.string.sources_title),
+                subtitle = stringResource(R.string.sources_subtitle),
+                onClick = onOpenSources,
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = "en" in settings.mangadexLanguages,
-                    onClick = { viewModel.setMangadexLanguage("en", "en" !in settings.mangadexLanguages) },
-                    label = { Text(stringResource(R.string.language_english)) },
-                )
-                FilterChip(
-                    selected = "ru" in settings.mangadexLanguages,
-                    onClick = { viewModel.setMangadexLanguage("ru", "ru" !in settings.mangadexLanguages) },
-                    label = { Text(stringResource(R.string.language_russian)) },
-                )
-            }
-            Text(
-                text = stringResource(R.string.settings_mangadex_languages_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-
-            HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
-            SectionHeader(stringResource(R.string.settings_servers), Icons.Rounded.Dns)
-
-            ServerCard(
-                title = stringResource(R.string.settings_server_komga),
-                hint = stringResource(R.string.settings_server_komga_hint),
-                connection = settings.komga,
-                onSave = { viewModel.saveServer(ServerId.KOMGA, it) },
-            )
-
-            ServerCard(
-                title = stringResource(R.string.settings_server_suwayomi),
-                hint = stringResource(R.string.settings_server_suwayomi_hint),
-                connection = settings.suwayomi,
-                onSave = { viewModel.saveServer(ServerId.SUWAYOMI, it) },
-            ) {
-                if (settings.suwayomi.isConfigured) {
-                    SuwayomiSourcePicker(
-                        state = suwayomiSources,
-                        selectedId = settings.suwayomiSourceId,
-                        onSelect = viewModel::selectSuwayomiSource,
-                        onRefresh = { viewModel.loadSuwayomiSources(force = true) },
-                    )
-                }
-            }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
             SectionHeader(stringResource(R.string.settings_about), Icons.Rounded.Code)
@@ -413,207 +343,9 @@ private fun SectionHeader(text: String, icon: ImageVector) {
     }
 }
 
-/**
- * One self-hosted server: URL, optional login and password, saved on the
- * explicit Save action so partial edits never break the live connection.
- * [extra] renders server-specific controls under the credentials.
- */
 @Composable
-private fun ServerCard(
-    title: String,
-    hint: String,
-    connection: ServerConnection,
-    onSave: (ServerConnection) -> Unit,
-    extra: (@Composable () -> Unit)? = null,
-) {
-    var url by remember(connection.url) { mutableStateOf(connection.url) }
-    var user by remember(connection.user) { mutableStateOf(connection.user) }
-    var password by remember(connection.password) { mutableStateOf(connection.password) }
-
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(
-                hint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.settings_server_url)) },
-                placeholder = { Text("https://komga.example.org") },
-                singleLine = true,
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = user,
-                onValueChange = { user = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.settings_server_login)) },
-                singleLine = true,
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.settings_server_password)) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (connection.isConfigured) {
-                    Text(
-                        text = stringResource(R.string.settings_server_connected),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(end = 12.dp),
-                    )
-                }
-                FilledTonalButton(
-                    onClick = { onSave(ServerConnection(url = url, user = user, password = password)) },
-                ) {
-                    Text(stringResource(R.string.settings_server_save))
-                }
-            }
-            extra?.invoke()
-        }
-    }
-}
-
-/**
- * Picks which Tachiyomi source inside a Suwayomi server fills the catalog.
- * The server answers the list over GraphQL; a refresh button retries it.
- */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun SuwayomiSourcePicker(
-    state: UiState<List<SuwayomiSourceOption>>,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-    onRefresh: () -> Unit,
-) {
-    when (state) {
-        is UiState.Loading -> Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            LinearWavyProgressIndicator(Modifier.padding(start = 4.dp))
-            Text(
-                text = stringResource(R.string.settings_suwayomi_sources_loading),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        is UiState.Error -> if (state.message != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_suwayomi_sources_failed),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.weight(1f),
-                )
-                FilledTonalIconButton(onClick = onRefresh) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.action_retry))
-                }
-            }
-        }
-        is UiState.Success -> SourceDropdown(
-            options = state.data,
-            selectedId = selectedId,
-            onSelect = onSelect,
-            onRefresh = onRefresh,
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SourceDropdown(
-    options: List<SuwayomiSourceOption>,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-    onRefresh: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = options.firstOrNull { it.id == selectedId }?.let { source ->
-        sourceLabel(source)
-    } ?: stringResource(R.string.settings_suwayomi_source_auto)
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.weight(1f),
-        ) {
-            OutlinedTextField(
-                value = selectedLabel,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.settings_suwayomi_source)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.settings_suwayomi_source_auto)) },
-                    onClick = {
-                        expanded = false
-                        onSelect("")
-                    },
-                )
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(sourceLabel(option)) },
-                        onClick = {
-                            expanded = false
-                            onSelect(option.id)
-                        },
-                    )
-                }
-            }
-        }
-        FilledTonalIconButton(
-            onClick = onRefresh,
-            modifier = Modifier.padding(start = 8.dp),
-        ) {
-            Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.action_retry))
-        }
-    }
-}
-
-private fun sourceLabel(option: SuwayomiSourceOption): String =
-    if (option.lang.isBlank()) option.name else "${option.name} (${option.lang})"
-
-@Composable
-private fun SwitchRow(    icon: ImageVector,
+private fun SwitchRow(
+    icon: ImageVector,
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -643,7 +375,7 @@ private fun SwitchRow(    icon: ImageVector,
     }
 }
 
-/** Tappable settings row used by the backup actions. */
+/** Tappable settings row used by the backup actions and the sources entry. */
 @Composable
 private fun ActionRow(
     icon: ImageVector,

@@ -176,6 +176,8 @@
     <string name="settings_sources">Sources</string>
     <string name="settings_mangadex_languages">MangaDex languages</string>
     <string name="settings_mangadex_languages_hint">With both off, manga in any language is shown</string>
+    <string name="sources_title">Sources</string>
+    <string name="sources_subtitle">Catalog filters, languages and servers</string>
     <string name="language_english">English</string>
     <string name="language_russian">Русский</string>
     <string name="explore_status_ongoing">Ongoing</string>
