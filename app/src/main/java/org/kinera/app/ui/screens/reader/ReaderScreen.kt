@@ -493,8 +493,9 @@ private fun PagedContent(
 /**
  * One page of the paged reader: double tap zooms in and out, pinch and drag
  * pan the image while zoomed. When the page fits the screen the gestures are
- * left to the pager, so swiping between pages keeps working. In RTL mode the
- * left third of the screen is "next", the right third is "previous".
+ * left to the pager, so swiping between pages keeps working. Edge taps flip
+ * pages like in most readers: in LTR the right third is "next", in RTL the
+ * left third is; a tap in the middle toggles the controls.
  */
 @Composable
 private fun ZoomablePage(
@@ -550,8 +551,8 @@ private fun ZoomablePage(
                     detectTapGestures(
                         onTap = { tap ->
                             when {
-                                rtl && tap.x < size.width / 3f -> onNext()
-                                rtl && tap.x > size.width * 2f / 3f -> onPrev()
+                                tap.x < size.width / 3f -> if (rtl) onNext() else onPrev()
+                                tap.x > size.width * 2f / 3f -> if (rtl) onPrev() else onNext()
                                 else -> onTap()
                             }
                         },

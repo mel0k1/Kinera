@@ -20,7 +20,7 @@ interface MangaDexApi {
         @Query("includes[]") includes: List<String> = listOf("cover_art", "author", "artist"),
         @Query("contentRating[]") contentRating: List<String> = listOf("safe", "suggestive"),
         @Query("hasAvailableChapters") hasAvailableChapters: String = "true",
-        @Query("availableChapterLanguage[]") languages: List<String> = listOf("en", "ru"),
+        @Query("availableTranslatedLanguage[]") languages: List<String> = listOf("en", "ru"),
         @QueryMap order: Map<String, String> = emptyMap(),
     ): MangaDexCollectionResponse<MangaDexManga>
 

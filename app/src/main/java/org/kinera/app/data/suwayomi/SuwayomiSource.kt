@@ -120,7 +120,10 @@ class SuwayomiSource(
     suspend fun search(query: String, offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
         fetch(offset, type = "SEARCH", searchQuery = query)
 
-    suspend fun details(mangaId: String): Manga = mangaNode(mangaId).toDomain()
+    suspend fun details(mangaId: String): Manga {
+        val server = server()
+        return mangaNode(mangaId).toDomain(server)
+    }
 
     suspend fun chapters(mangaId: String): List<MangaChapter> =
         mangaNode(mangaId).chapters.nodes
@@ -163,7 +166,8 @@ class SuwayomiSource(
         searchQuery: String? = null,
     ): Paged<Manga> {
         val server = server()
-        val page = offset / PAGE_SIZE
+        // Tachiyomi/Mihon sources behind the server are 1-indexed.
+        val page = offset / PAGE_SIZE + 1
         val variables = buildJsonObject {
             putJsonObject("input") {
                 put("source", preferredSourceId())
@@ -182,21 +186,24 @@ class SuwayomiSource(
                     id = MANGA_ID_PREFIX + node.id,
                     source = source,
                     title = node.title.ifBlank { "Untitled" },
-                    coverUrl = node.thumbnailUrl ?: "${server.url}/api/v1/manga/${node.id}/thumbnail",
+                    coverUrl = node.thumbnailUrl
+                        ?.takeIf { it.startsWith("http") }
+                        ?: "${server.url}/api/v1/manga/${node.id}/thumbnail",
                     state = MangaState.UNKNOWN,
                 )
             },
-            offset = page * PAGE_SIZE,
+            offset = offset,
             total = -1,
             hasNext = payload.hasNextPage,
         )
     }
 
-    private fun MangaDetailsNode.toDomain(): Manga = Manga(
+    private fun MangaDetailsNode.toDomain(server: ServerConnection): Manga = Manga(
         id = MANGA_ID_PREFIX + id,
         source = source,
         title = title.ifBlank { "Untitled" },
-        coverUrl = thumbnailUrl,
+        coverUrl = thumbnailUrl?.takeIf { it.startsWith("http") }
+            ?: "${server.url}/api/v1/manga/$id/thumbnail",
         description = description?.takeIf { it.isNotBlank() },
         tags = genre.map { MangaTag(id = it, title = it) },
         state = mapState(status),

@@ -19,6 +19,16 @@ data class ServerConnection(
             java.net.URI(normalizeUrl(url)).host?.lowercase().orEmpty()
         }.getOrNull().orEmpty()
 
+    /** Explicit port from the stored URL; scheme default when none was given. */
+    val port: Int
+        get() = runCatching {
+            val uri = java.net.URI(normalizeUrl(url))
+            uri.port.takeIf { it != -1 } ?: when (uri.scheme) {
+                "https" -> 443
+                else -> 80
+            }
+        }.getOrNull() ?: -1
+
     companion object {
         fun normalizeUrl(raw: String): String {
             var url = raw.trim()

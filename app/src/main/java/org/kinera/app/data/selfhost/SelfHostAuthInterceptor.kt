@@ -22,8 +22,8 @@ class SelfHostAuthInterceptor(private val settings: SettingsRepository) : Interc
         if (host.isEmpty()) return chain.proceed(request)
 
         val snapshot = settings.snapshot.value
-        val auth = authFor(snapshot.komga, host)
-            ?: authFor(snapshot.suwayomi, host)
+        val auth = authFor(snapshot.komga, host, request.url.port)
+            ?: authFor(snapshot.suwayomi, host, request.url.port)
             ?: return chain.proceed(request)
 
         return chain.proceed(
@@ -31,8 +31,10 @@ class SelfHostAuthInterceptor(private val settings: SettingsRepository) : Interc
         )
     }
 
-    private fun authFor(server: ServerConnection, host: String): String? {
+    /** Port must match too: Komga and Suwayomi can share one host. */
+    private fun authFor(server: ServerConnection, host: String, port: Int): String? {
         if (!server.isConfigured || server.host != host) return null
+        if (server.port != -1 && server.port != port) return null
         if (server.user.isBlank()) return null
         return Credentials.basic(server.user, server.password)
     }
