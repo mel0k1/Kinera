@@ -7,8 +7,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -42,6 +45,7 @@ fun KineraNavHost(
     navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     NavHost(
         navController = navController,
         startDestination = LibraryRoute,
@@ -121,7 +125,12 @@ fun KineraNavHost(
                 mangaId = route.mangaId,
                 onBack = { navController.popBackStack() },
                 onReadChapter = { _, chapter, page ->
-                    navController.navigate(ReaderRoute(route.mangaId, chapter.id, page))
+                    if (chapter.externalUrl != null) {
+                        // Official chapters hosted on another site open in a browser.
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(chapter.externalUrl)))
+                    } else {
+                        navController.navigate(ReaderRoute(route.mangaId, chapter.id, page))
+                    }
                 },
             )
         }

@@ -33,6 +33,10 @@ class DetailsViewModel(
     private val _chapters = MutableStateFlow<List<MangaChapter>>(emptyList())
     val chapters: StateFlow<List<MangaChapter>> = _chapters.asStateFlow()
 
+    /** True when the chapter list failed to load; differs from a truly empty title. */
+    private val _chaptersFailed = MutableStateFlow(false)
+    val chaptersFailed: StateFlow<Boolean> = _chaptersFailed.asStateFlow()
+
     private val _isFavorite = MutableStateFlow(false)
     val isFavorite: StateFlow<Boolean> = _isFavorite.asStateFlow()
 
@@ -69,11 +73,20 @@ class DetailsViewModel(
             runCatching { catalog.details(mangaId) }
                 .onSuccess { details ->
                     _manga.value = UiState.Success(details)
-                    runCatching { catalog.chapters(mangaId) }
-                        .onSuccess { _chapters.value = it }
+                    loadChapters()
                     _progress.value = runCatching { library.getProgress(mangaId) }.getOrNull()
                 }
                 .onFailure { _manga.value = UiState.Error(it.message) }
+        }
+    }
+
+    /** Fetches the chapter list; a failure shows a retry row, not an empty list. */
+    fun loadChapters() {
+        viewModelScope.launch {
+            _chaptersFailed.value = false
+            runCatching { catalog.chapters(mangaId) }
+                .onSuccess { _chapters.value = it }
+                .onFailure { if (_chapters.value.isEmpty()) _chaptersFailed.value = true }
         }
     }
 

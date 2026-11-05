@@ -109,27 +109,31 @@ class RemangaSource(
     }
 
     /**
-     * Chapters oldest-first. The site lists them newest first per branch,
-     * so the result is reversed after fetching all pages of the branch.
+     * Chapters oldest-first, merged across every translation branch. The
+     * site lists them newest first per branch, so each branch is reversed;
+     * branches are kept in the order the API returns them (primary first).
+     * Paid chapters that were not bought are hidden.
      */
     suspend fun chapters(mangaId: String): List<MangaChapter> {
         val dir = mangaId.removePrefix(MANGA_ID_PREFIX)
         val details = api.manga(dir)
-        val branch = details.branches.firstOrNull()
-            ?: return emptyList()
-        val chapters = mutableListOf<RemangaChapter>()
-        var page = 1
-        while (true) {
-            val response = api.chapters(branchId = branch.id, page = page)
-            chapters += response.results
-            if (response.next == null || response.results.isEmpty()) break
-            page++
-            if (page > MAX_CHAPTER_PAGES) break // safety valve
+        val collected = mutableListOf<MangaChapter>()
+        for (branch in details.branches) {
+            val branchChapters = mutableListOf<RemangaChapter>()
+            var page = 1
+            while (true) {
+                val response = api.chapters(branchId = branch.id, page = page)
+                branchChapters += response.results
+                if (response.next == null || response.results.isEmpty()) break
+                page++
+                if (page > MAX_CHAPTER_PAGES) break // safety valve
+            }
+            collected += branchChapters
+                .filter { !it.is_paid || it.is_bought }
+                .map { it.toDomain() }
+                .reversed()
         }
-        return chapters
-            .filter { !it.is_paid || it.is_bought }
-            .map { it.toDomain() }
-            .reversed()
+        return collected.distinctBy { it.id }
     }
 
     suspend fun pages(chapterId: String): List<MangaPage> {

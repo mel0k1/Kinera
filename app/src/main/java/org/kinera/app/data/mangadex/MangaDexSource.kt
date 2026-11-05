@@ -50,7 +50,8 @@ class MangaDexSource(
             if (page.data.isEmpty() || offset >= page.total || page.data.size < page.limit) break
         }
         return collected
-            .filter { it.attributes.externalUrl == null }
+            // Chapters hosted on official sites stay in the list; the details
+            // screen opens them in a browser instead of the reader.
             .groupBy { it.attributes.chapter ?: it.id }
             .map { (_, group) -> group.maxBy { it.attributes.readableAt.orEmpty() } }
             .map { it.toDomain() }
@@ -134,6 +135,7 @@ class MangaDexSource(
         scanlator = relationships.firstOrNull { it.type == "scanlation_group" }?.attributes?.name,
         uploadedAt = parseDate(attributes.readableAt),
         pagesCount = attributes.pages,
+        externalUrl = attributes.externalUrl?.takeIf { it.startsWith("http") },
     )
 
     private fun mapState(status: String?): MangaState = when (status) {

@@ -21,8 +21,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Catalog source for Desu.me (https://desu.me) — a Russian anime & manga
- * portal. Manga ids keep the numeric API id under the "desu:" prefix,
+ * Catalog source for Desu (https://desu.city) — a Russian anime & manga
+ * portal. The old desu.me domain is retired; the source probes the
+ * mirrors the Kotatsu parser lists. Manga ids keep the numeric API id under the "desu:" prefix,
  * chapter ids are "desuch:<chapterId>".
  *
  * The portal migrates between mirrors every few months, so the first call
@@ -246,8 +247,14 @@ class DesuMeSource(
         const val USER_AGENT = "Kinera (github.com/mel0k1/Kinera)"
         private const val PROBE_TIMEOUT_MS = 4_000
 
-        /** desu.me is the canonical host; mirrors follow the Kotatsu parser. */
-        private val DOMAIN_CANDIDATES = listOf("desu.me", "x.desu.city", "desu.city")
+        /** desu.me is dead (no DNS record); mirrors follow the Kotatsu parser. */
+        private val DOMAIN_CANDIDATES = listOf(
+            "x.desu.city",
+            "desu.city",
+            "desu.work",
+            "desu.store",
+            "desu.win",
+        )
 
         /** Filter inputs of the site carry the genre slug and localized name. */
         private val INPUT_TAG_REGEX = Regex("<input[^>]*>", RegexOption.IGNORE_CASE)

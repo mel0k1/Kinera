@@ -9,6 +9,8 @@ data class MangaChapter(
     val scanlator: String? = null,
     val uploadedAt: Long = 0L,
     val pagesCount: Int = 0,
+    /** Link to the official release for chapters hosted elsewhere; opens in a browser. */
+    val externalUrl: String? = null,
 ) {
     val label: String
         get() = when {

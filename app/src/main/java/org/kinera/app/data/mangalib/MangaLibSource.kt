@@ -22,8 +22,9 @@ import org.kinera.app.data.settings.SettingsRepository
 import java.time.OffsetDateTime
 
 /**
- * Catalog source for MangaLib (https://mangalib.me) — the largest Russian
- * manga hosting. The app talks to the public JSON API at api.mangalib.me;
+ * Catalog source for MangaLib (https://mangalib.org) — the largest Russian
+ * manga hosting. The app talks to the public JSON API at api.cdnlibs.org
+ * (the old api.mangalib.me host is retired);
  * no authorization is needed for reading.
  *
  * Manga ids keep the API "slug_url" ("<id>--<slug>") under the "mlib:" prefix,

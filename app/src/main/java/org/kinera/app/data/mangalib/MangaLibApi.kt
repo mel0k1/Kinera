@@ -13,8 +13,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
- * Public JSON API of MangaLib (https://mangalib.me) — the largest Russian
- * manga catalog. A header "Site-Id: 1" is attached by an interceptor wired
+ * Public JSON API of MangaLib (https://mangalib.org) — the largest Russian
+ * manga catalog. The API host is api.cdnlibs.org (mangalib.me is retired);
+ * a header "Site-Id: 1" is attached by an interceptor wired
  * in the DI graph. Endpoints verified against the live API.
  */
 interface MangaLibApi {

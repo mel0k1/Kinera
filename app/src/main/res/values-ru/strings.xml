@@ -62,6 +62,7 @@
     <string name="details_download_deleted">Скачанные файлы удалены</string>
     <string name="details_chapters">Главы</string>
     <string name="details_no_chapters">Главы недоступны</string>
+    <string name="details_chapters_failed">Не удалось загрузить список глав</string>
     <string name="details_add_favorite">В библиотеку</string>
     <string name="details_in_library">В библиотеке</string>
     <string name="details_remove_confirm_title">Убрать из библиотеки?</string>

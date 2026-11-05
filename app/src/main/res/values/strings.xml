@@ -71,6 +71,7 @@
     <string name="details_download_deleted">Downloaded files removed</string>
     <string name="details_chapters">Chapters</string>
     <string name="details_no_chapters">No chapters available</string>
+    <string name="details_chapters_failed">Couldn\'t load the chapter list</string>
     <string name="details_add_favorite">Add to library</string>
     <string name="details_in_library">In library</string>
     <string name="details_remove_confirm_title">Remove from library?</string>

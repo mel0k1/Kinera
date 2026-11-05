@@ -90,6 +90,7 @@ fun DetailsScreen(
 ) {
     val mangaState by viewModel.manga.collectAsState()
     val chapters by viewModel.chapters.collectAsState()
+    val chaptersFailed by viewModel.chaptersFailed.collectAsState()
     val isFavorite by viewModel.isFavorite.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val downloadStates by viewModel.downloadStates.collectAsState()
@@ -224,7 +225,27 @@ fun DetailsScreen(
                             chaptersHeader()
                         }
                     }
-                    if (chapters.isEmpty()) {
+                    if (chapters.isEmpty() && chaptersFailed) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.details_chapters_failed),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = viewModel::loadChapters) {
+                                    Text(stringResource(R.string.action_retry))
+                                }
+                            }
+                        }
+                    } else if (chapters.isEmpty()) {
                         item {
                             Text(
                                 text = stringResource(R.string.details_no_chapters),

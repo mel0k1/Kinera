@@ -59,8 +59,8 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 private const val MANGADEX_BASE_URL = "https://api.mangadex.org/"
-private const val MANGALIB_BASE_URL = "https://api.mangalib.me/"
-private const val MANGALIB_HOST = "api.mangalib.me"
+private const val MANGALIB_BASE_URL = "https://api.cdnlibs.org/"
+private const val MANGALIB_HOST = "api.cdnlibs.org"
 private const val MANGALIB_SITE_ID = "1"
 private const val REMANGA_BASE_URL = "https://api.remanga.org/"
 private const val PLACEHOLDER_BASE_URL = "http://localhost/"

@@ -18,7 +18,7 @@ data class DesuMeOne<T>(
 )
 
 /**
- * Public JSON API of Desu.me (https://desu.me), a Russian anime & manga
+ * Public JSON API of Desu (https://desu.city), a Russian anime & manga
  * portal with a VK-shaped response envelope: every payload is wrapped in
  * {"response": ...}. Endpoints follow the reference DesuMe parser of the
  * Kotatsu project.
