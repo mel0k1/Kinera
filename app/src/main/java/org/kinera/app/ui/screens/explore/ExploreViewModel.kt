@@ -57,11 +57,12 @@ class ExploreViewModel(
     ) { archives, folders -> (archives + folders).sortedBy { it.title.lowercase() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** Online sources available right now: MangaDex plus any configured servers. */
+    /** Online sources: MangaDex and MangaLib are public, servers add more. */
     val availableSources: StateFlow<List<MangaSource>> = settings.snapshot
         .map { current ->
             buildList {
                 add(MangaSource.MANGADEX)
+                add(MangaSource.MANGALIB)
                 if (current.komga.isConfigured) add(MangaSource.KOMGA)
                 if (current.suwayomi.isConfigured) add(MangaSource.SUWAYOMI)
             }

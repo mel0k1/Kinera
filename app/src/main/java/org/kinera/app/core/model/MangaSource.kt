@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class MangaSource(val id: String, val title: String) {
     MANGADEX("mangadex", "MangaDex"),
+    MANGALIB("mangalib", "MangaLib"),
     KOMGA("komga", "Komga"),
     SUWAYOMI("suwayomi", "Suwayomi"),
     LOCAL("local", "Local");

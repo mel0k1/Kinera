@@ -25,8 +25,8 @@ Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](http
 ## Features
 
 - **Library** — favourites with custom categories, long-press to remove
-- **Explore** — popular and latest titles from MangaDex, endless scroll, per-source tabs
-- **Sources** — MangaDex out of the box, plus self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically)
+- **Explore** — popular and latest titles, endless scroll, per-source tabs
+- **Sources** — **MangaDex** (with an RU/EN language filter) and **MangaLib** — the largest Russian catalog — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
 - **Search** — debounced title search with load-more, across every configured source
@@ -62,6 +62,7 @@ org.kinera.app
 ├── core/          domain models, UI state
 ├── data/
 │   ├── mangadex/  Retrofit API, DTOs, MangaDex source
+│   ├── mangalib/  MangaLib JSON API source (Russian catalog)
 │   ├── komga/     Komga REST source (self-hosted)
 │   ├── suwayomi/  Suwayomi GraphQL source (self-hosted)
 │   ├── selfhost/  basic-auth interceptor for self-hosted servers
@@ -90,6 +91,7 @@ UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlin
 
 - [Kotatsu](https://github.com/KotatsuApp/Kotatsu) — inspiration and the general idea of a free, open manga reader for Android
 - [MangaDex](https://mangadex.org) — catalog data comes from their public API; Kinera is not affiliated with MangaDex
+- [MangaLib](https://mangalib.me) — the largest Russian manga catalog, read through their public API
 - [Komga](https://komga.org) and [Suwayomi](https://suwayomi.com) — supported self-hosted server APIs
 - App icon and logo by [mel0k1](https://github.com/mel0k1)
 

@@ -47,12 +47,15 @@ class SearchViewModel(
     val hasNext: StateFlow<Boolean> = _hasNext.asStateFlow()
 
     private var nextOffset = 0
+    /** Bumped on every new search; late responses of stale runs are dropped. */
+    private var searchGeneration = 0
 
-    /** Online sources available right now: MangaDex plus any configured servers. */
+    /** Online sources: MangaDex and MangaLib are public, servers add more. */
     val availableSources: StateFlow<List<MangaSource>> = settings.snapshot
         .map { current ->
             buildList {
                 add(MangaSource.MANGADEX)
+                add(MangaSource.MANGALIB)
                 if (current.komga.isConfigured) add(MangaSource.KOMGA)
                 if (current.suwayomi.isConfigured) add(MangaSource.SUWAYOMI)
             }
@@ -103,15 +106,17 @@ class SearchViewModel(
         _loading.value = true
         _error.value = null
         nextOffset = 0
+        val generation = ++searchGeneration
         viewModelScope.launch {
             runCatching { catalog.search(query.trim(), source = _source.value, offset = 0) }
                 .onSuccess { page ->
+                    if (generation != searchGeneration) return@launch
                     nextOffset = page.offset + page.items.size
                     _hasNext.value = page.hasNext
                     _results.value = page.items
                 }
-                .onFailure { _error.value = it.message }
-            _loading.value = false
+                .onFailure { if (generation == searchGeneration) _error.value = it.message }
+            if (generation == searchGeneration) _loading.value = false
         }
     }
 }

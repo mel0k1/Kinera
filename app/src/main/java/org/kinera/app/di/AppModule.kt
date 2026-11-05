@@ -23,6 +23,8 @@ import org.kinera.app.data.localsource.LocalMangaSource
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.mangadex.MangaDexApi
 import org.kinera.app.data.mangadex.MangaDexSource
+import org.kinera.app.data.mangalib.MangaLibApi
+import org.kinera.app.data.mangalib.MangaLibSource
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.repository.DownloadRepository
 import org.kinera.app.data.repository.LibraryRepository
@@ -49,6 +51,9 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 private const val MANGADEX_BASE_URL = "https://api.mangadex.org/"
+private const val MANGALIB_BASE_URL = "https://api.mangalib.me/"
+private const val MANGALIB_HOST = "api.mangalib.me"
+private const val MANGALIB_SITE_ID = "1"
 private const val PLACEHOLDER_BASE_URL = "http://localhost/"
 
 val dataModule = module {
@@ -81,6 +86,16 @@ val dataModule = module {
                 }
             })
             .addInterceptor(get<SelfHostAuthInterceptor>())
+            .addInterceptor { chain ->
+                val request = chain.request()
+                if (request.url.host == MANGALIB_HOST) {
+                    chain.proceed(
+                        request.newBuilder().header("Site-Id", MANGALIB_SITE_ID).build(),
+                    )
+                } else {
+                    chain.proceed(request)
+                }
+            }
             .build()
     }
 
@@ -114,14 +129,24 @@ val dataModule = module {
             .create(SuwayomiApi::class.java)
     }
 
+    single {
+        Retrofit.Builder()
+            .baseUrl(MANGALIB_BASE_URL)
+            .client(get<OkHttpClient>())
+            .addConverterFactory(get<Json>().asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(MangaLibApi::class.java)
+    }
+
     single { MangaDexSource(get(), get()) }
+    single { MangaLibSource(get(), get()) }
     single { KomgaSource(get(), get()) }
     single { SuwayomiSource(get(), get(), get()) }
     single { LocalSourceStorage(androidContext()) }
     single { LocalMangaSource(get()) }
     single { FolderSourceStorage(androidContext()) }
     single { FolderMangaSource(get()) }
-    single { CatalogRepository(get(), get(), get(), get(), get()) }
+    single { CatalogRepository(get(), get(), get(), get(), get(), get()) }
 
     single {
         Room.databaseBuilder(androidContext(), LibraryDatabase::class.java, "kinera_library.db")
