@@ -42,17 +42,52 @@ jobs:
     needs: build
     permissions:
       contents: write
+    env:
+      KINERA_KEYSTORE_B64: ${{ secrets.KINERA_KEYSTORE_B64 }}
     steps:
-      - name: Download APK
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Decode signing keystore
+        if: env.KINERA_KEYSTORE_B64 != ''
+        run: echo "${KINERA_KEYSTORE_B64}" | base64 -d > kinera-release.jks
+
+      - name: Build signed release APK
+        if: env.KINERA_KEYSTORE_B64 != ''
+        env:
+          KINERA_KEYSTORE_FILE: kinera-release.jks
+          KINERA_KEYSTORE_PASSWORD: ${{ secrets.KINERA_KEYSTORE_PASSWORD }}
+          KINERA_KEY_ALIAS: ${{ secrets.KINERA_KEY_ALIAS }}
+          KINERA_KEY_PASSWORD: ${{ secrets.KINERA_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Rename release APK
+        if: env.KINERA_KEYSTORE_B64 != ''
+        run: mv app/build/outputs/apk/release/app-release.apk "Kinera-${GITHUB_REF_NAME}-release.apk"
+
+      - name: Download debug APK
         uses: actions/download-artifact@v7
         with:
           name: kinera-debug-apk
 
-      - name: Rename APK
-        run: mv app-debug.apk "Kinera-${GITHUB_REF_NAME}-debug.apk"
+      - name: Rename debug APK
+        run: mv app-debug.apk "Kinera-${GITHUB_REF_NAME}-debug.apk" 2>/dev/null || mv **/app-debug.apk "Kinera-${GITHUB_REF_NAME}-debug.apk"
 
-      - name: Attach APK to release
+      - name: Attach APKs to release
         uses: softprops/action-gh-release@v2
         with:
-          files: Kinera-*-debug.apk
+          files: Kinera-*.apk
           overwrite_files: true
+          prerelease: ${{ contains(github.ref_name, 'beta') }}

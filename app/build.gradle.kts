@@ -1,4 +1,27 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+// Release signing material comes either from the environment (GitHub
+// Actions secrets) or from a local keystore.properties that is never
+// committed. Without it the release build stays unsigned, so developers
+// can still run assembleRelease locally.
+val signingProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+private fun signingValue(key: String): String? =
+    System.getenv(key) ?: signingProperties.getProperty(key)
+
+val releaseStoreFile = signingValue("KINERA_KEYSTORE_FILE")
+val releaseStorePassword = signingValue("KINERA_KEYSTORE_PASSWORD")
+val releaseKeyAlias = signingValue("KINERA_KEY_ALIAS")
+val releaseKeyPassword = signingValue("KINERA_KEY_PASSWORD")
+
+val canSignRelease = releaseStoreFile != null &&
+    releaseStorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
 
 plugins {
     alias(libs.plugins.android.application)
@@ -17,15 +40,29 @@ android {
         applicationId = "org.kinera.app"
         minSdk = 31
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0-beta"
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    signingConfigs {
+        if (canSignRelease) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (canSignRelease) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

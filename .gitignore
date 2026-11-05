@@ -20,6 +20,11 @@ captures/
 # Local configuration
 local.properties
 
+# Release signing material — never commit
+kinera-release.jks
+*.jks
+keystore.properties
+
 # Logs and dumps
 *.log
 hs_err_pid*

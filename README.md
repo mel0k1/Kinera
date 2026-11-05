@@ -24,11 +24,12 @@ Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](http
 
 ## Features
 
-- **Library** — favourites with custom categories, long-press to remove
+- **Library** — favourites with custom categories: long-press a cover to move the title between categories, and long-press a category chip to drag it into another order
 - **Explore** — popular and latest titles, endless scroll, per-source tabs
 - **Sources** — **MangaDex** (with an RU/EN language filter), **MangaLib**, **Remanga** and **Desu.me** — Russian catalogs — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
 - **Library auto-update** — Kinera checks favourites for new chapters in the background (every 6/12/24 hours, configurable), badges them on the shelf and clears the badge when you open the title; there is also a "check now" button in the Library toolbar
-- **MangaLib filters** — status chips and a genre picker right in Explore (and search), persisted between runs
+- **MangaLib / Remanga / Desu.me filters** — status chips and a genre picker right in Explore (and search), persisted between runs
+- **Backup & restore** — export the whole library (favourites, categories, history, page bookmarks) to a human-readable JSON file and merge it back after a reinstall or on another device; the file is exchanged through the system file picker, categories are matched by name
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
 - **Search** — debounced title search with load-more, across every configured source
@@ -52,6 +53,17 @@ cd Kinera
 The APK lands in `app/build/outputs/apk/debug/`.
 
 No Android Studio around? Every push to `main` runs [Android CI](https://github.com/mel0k1/Kinera/actions/workflows/ci.yml), which publishes a debug APK as a workflow artifact — grab the latest green run and install it.
+
+Releases carry both APKs: an unsigned debug build and a **signed release build** (`Kinera-v…-release.apk`, the same key every version). To sign release builds yourself, put a keystore next to the repo as `kinera-release.jks` plus a `keystore.properties` file:
+
+```properties
+KINERA_KEYSTORE_FILE=kinera-release.jks
+KINERA_KEYSTORE_PASSWORD=…
+KINERA_KEY_ALIAS=kinera
+KINERA_KEY_PASSWORD=…
+```
+
+Both files are git-ignored; on GitHub Actions the same values are read from the `KINERA_KEYSTORE_*` repository secrets.
 
 Or open the folder in Android Studio and press Run.
 
@@ -87,9 +99,8 @@ UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlin
 
 ## Roadmap
 
-- Filters (genres / status) for Remanga and Desu.me
 - Per-source settings (language filters, source picker inside Suwayomi)
-- Beta release with signed builds in Releases
+- Optionally strip downloads together with their chapters
 
 ## Credits and legal
 
