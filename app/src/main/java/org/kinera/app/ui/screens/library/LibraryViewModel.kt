@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.kinera.app.core.model.Manga
 import org.kinera.app.data.local.entity.CategoryEntity
+import org.kinera.app.data.repository.DownloadRepository
 import org.kinera.app.data.repository.FavouriteManga
 import org.kinera.app.data.repository.LibraryRepository
 import org.kinera.app.data.repository.LibraryUpdateSummary
@@ -17,6 +18,7 @@ import org.kinera.app.data.repository.LibraryUpdater
 class LibraryViewModel(
     private val library: LibraryRepository,
     private val updater: LibraryUpdater,
+    private val downloads: DownloadRepository,
 ) : ViewModel() {
 
     val favourites = library.favourites
@@ -29,8 +31,15 @@ class LibraryViewModel(
     private val _refresh = MutableStateFlow<LibraryRefreshState>(LibraryRefreshState.Idle)
     val refresh = _refresh.asStateFlow()
 
+    /**
+     * Removes the title from the shelf and wipes its downloaded chapters
+     * (rows and on-disk files) in the same pass.
+     */
     fun removeFavorite(manga: Manga) {
-        viewModelScope.launch { library.toggleFavorite(manga) }
+        viewModelScope.launch {
+            library.toggleFavorite(manga)
+            downloads.deleteManga(manga.id)
+        }
     }
 
     fun addCategory(name: String, onDone: () -> Unit = {}) {

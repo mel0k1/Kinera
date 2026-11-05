@@ -17,6 +17,7 @@
     <string name="action_cancel">Отмена</string>
     <string name="action_delete">Удалить</string>
     <string name="library_remove_favorite">Убрать из библиотеки</string>
+    <string name="library_remove_downloads_hint">Скачанные главы тоже будут удалены.</string>
     <string name="library_check_updates">Проверить новые главы</string>
     <string name="library_move_to_category">Перенести в категорию</string>
     <string name="library_category_none">Без категории</string>
@@ -61,6 +62,8 @@
     <string name="details_no_chapters">Главы недоступны</string>
     <string name="details_add_favorite">В библиотеку</string>
     <string name="details_in_library">В библиотеке</string>
+    <string name="details_remove_confirm_title">Убрать из библиотеки?</string>
+    <string name="details_remove_confirm_text">Титул покинет полку, а скачанные главы будут удалены с устройства.</string>
     <string name="details_description_expand">Ещё</string>
     <string name="details_description_collapse">Свернуть</string>
     <string name="details_chapter_volume">Том %1$s</string>

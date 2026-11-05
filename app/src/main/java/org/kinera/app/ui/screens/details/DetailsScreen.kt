@@ -97,6 +97,7 @@ fun DetailsScreen(
     val message by viewModel.message.collectAsState()
     var expanded by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
+    var confirmRemove by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
@@ -143,7 +144,14 @@ fun DetailsScreen(
                     contentPadding = PaddingValues(bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    item { MangaHeader(manga, isFavorite, viewModel::toggleFavorite) }
+                    item { MangaHeader(manga, isFavorite) {
+                        // Removal wipes downloaded chapters too, so ask first.
+                        if (isFavorite && downloadStates.isNotEmpty()) {
+                            confirmRemove = true
+                        } else {
+                            viewModel.toggleFavorite()
+                        }
+                    } }
                     item {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (!manga.description.isNullOrBlank()) {
@@ -262,6 +270,27 @@ fun DetailsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (confirmRemove) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text(stringResource(R.string.details_remove_confirm_title)) },
+            text = { Text(stringResource(R.string.details_remove_confirm_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeFromLibrary()
+                    confirmRemove = false
+                }) {
+                    Text(stringResource(R.string.library_remove_favorite))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },

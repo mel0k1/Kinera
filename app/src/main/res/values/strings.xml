@@ -21,6 +21,7 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
     <string name="library_remove_favorite">Remove from library</string>
+    <string name="library_remove_downloads_hint">Downloaded chapters will be deleted too.</string>
     <string name="library_check_updates">Check for new chapters</string>
     <string name="library_move_to_category">Move to category</string>
     <string name="library_category_none">No category</string>
@@ -70,6 +71,8 @@
     <string name="details_no_chapters">No chapters available</string>
     <string name="details_add_favorite">Add to library</string>
     <string name="details_in_library">In library</string>
+    <string name="details_remove_confirm_title">Remove from library?</string>
+    <string name="details_remove_confirm_text">The title will leave your shelf and its downloaded chapters will be deleted from the device.</string>
     <string name="details_description_expand">More</string>
     <string name="details_description_collapse">Less</string>
     <string name="details_chapter_volume">Vol. %1$s</string>

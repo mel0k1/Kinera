@@ -363,6 +363,12 @@ private fun LibraryGrid(
                             )
                         }
                     }
+                    Text(
+                        text = stringResource(R.string.library_remove_downloads_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
                 }
             },
             confirmButton = {

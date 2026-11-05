@@ -82,6 +82,19 @@ class DetailsViewModel(
         viewModelScope.launch { library.toggleFavorite(current) }
     }
 
+    /**
+     * Leaves the library and takes the downloaded chapters with it: rows
+     * in the downloads list and the page files on disk are wiped together
+     * with the favourite.
+     */
+    fun removeFromLibrary() {
+        val current = (_manga.value as? UiState.Success)?.data ?: return
+        viewModelScope.launch {
+            library.toggleFavorite(current)
+            downloads.deleteManga(current.id)
+        }
+    }
+
     fun deleteBookmark(bookmark: BookmarkEntity) {
         viewModelScope.launch { library.deleteBookmark(bookmark) }
     }
