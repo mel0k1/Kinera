@@ -47,6 +47,8 @@ class KineraApplication : Application(), ImageLoaderFactory, Configuration.Provi
                 .maxSizeBytes(256L * 1024 * 1024)
                 .build(),
         )
-        .crossfade(true)
+        // No global crossfade: reader pages must pop in instantly to feel
+        // responsive. Covers opt back in explicitly via CoverImage.
+        .crossfade(false)
         .build()
 }

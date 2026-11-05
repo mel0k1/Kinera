@@ -106,6 +106,10 @@ fun ReaderScreen(
     val message by viewModel.message.collectAsState()
 
     var controlsVisible by remember { mutableStateOf(true) }
+    // One-shot seek from the slider; the stamp makes the effect re-run for
+    // repeated seeks to the same page.
+    var seekPage by remember { mutableStateOf(0) }
+    var seekStamp by remember { mutableStateOf(0L) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
@@ -150,19 +154,28 @@ fun ReaderScreen(
                         onRetry = viewModel::retryPages,
                     )
                 } else {
+                    // Stable per chapter: recomputing the list on every
+                    // recomposition would restart the scroll effects below
+                    // mid-gesture and make flipping feel laggy.
+                    val pageUrls = remember(pages) { pages.map { it.url } }
+                    val toggleControls = remember { { controlsVisible = !controlsVisible } }
                     when (readerMode) {
                         ReaderMode.WEBTOON -> WebtoonContent(
-                            pages = pages.map { it.url },
-                            currentPage = currentPage,
+                            pages = pageUrls,
+                            startPage = remember(pageUrls) { currentPage },
+                            seekPage = seekPage,
+                            seekStamp = seekStamp,
                             zoomEnabled = webtoonZoom,
-                            onTap = { controlsVisible = !controlsVisible },
+                            onTap = toggleControls,
                             onPageChanged = viewModel::onPageChanged,
                         )
                         ReaderMode.PAGED -> PagedContent(
-                            pages = pages.map { it.url },
-                            currentPage = currentPage,
+                            pages = pageUrls,
+                            startPage = remember(pageUrls) { currentPage },
+                            seekPage = seekPage,
+                            seekStamp = seekStamp,
                             rtl = readerRtl,
-                            onTap = { controlsVisible = !controlsVisible },
+                            onTap = toggleControls,
                             onPageChanged = viewModel::onPageChanged,
                         )
                     }
@@ -197,7 +210,11 @@ fun ReaderScreen(
                 readerMode = readerMode,
                 readerRtl = readerRtl,
                 isBookmarked = isBookmarked,
-                onSeek = { viewModel.onPageChanged(it) },
+                onSeek = { page ->
+                    viewModel.onPageChanged(page)
+                    seekPage = page
+                    seekStamp = System.nanoTime()
+                },
                 onNextChapter = { viewModel.nextChapter() },
                 onPrevChapter = { viewModel.previousChapter() },
                 onToggleBookmark = viewModel::toggleBookmark,
@@ -357,11 +374,18 @@ private fun ReaderBottomBar(
  * Continuous vertical feed. Pinch zooms the whole strip, two-finger panning
  * looks around, double tap toggles between fit and zoomed-in. A single
  * finger still scrolls the list underneath.
+ *
+ * [startPage] is read once per chapter (the caller captures it with
+ * remember), [seekPage]/[seekStamp] are one-shot jumps from the slider.
+ * The live page index never flows back in, so the list is not forced to
+ * recompose on every flip.
  */
 @Composable
 private fun WebtoonContent(
     pages: List<String>,
-    currentPage: Int,
+    startPage: Int,
+    seekPage: Int,
+    seekStamp: Long,
     zoomEnabled: Boolean,
     onTap: () -> Unit,
     onPageChanged: (Int) -> Unit,
@@ -388,7 +412,12 @@ private fun WebtoonContent(
     }
 
     LaunchedEffect(pages) {
-        if (currentPage > 0) listState.scrollToItem(currentPage)
+        if (startPage > 0 && startPage < pages.size) listState.scrollToItem(startPage)
+    }
+    LaunchedEffect(seekStamp) {
+        if (seekStamp != 0L && seekPage in pages.indices) {
+            listState.scrollToItem(seekPage)
+        }
     }
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
@@ -428,7 +457,11 @@ private fun WebtoonContent(
                     )
                 },
         ) {
-            itemsIndexed(pages) { _, url ->
+            itemsIndexed(
+                pages,
+                key = { index, _ -> index },
+                contentType = { _, _ -> "page" },
+            ) { _, url ->
                 AsyncImage(
                     model = url,
                     contentDescription = null,
@@ -445,11 +478,17 @@ private fun WebtoonContent(
  * manga direction: page 1 sits on the right and reading moves leftwards.
  * In that mode the tap zones mirror too — the left edge flips forward, the
  * right edge flips back, a tap in the middle toggles the controls.
+ *
+ * [startPage] is captured once per chapter; [seekPage]/[seekStamp] are
+ * one-shot slider jumps. The live page index never flows back in, so
+ * swiping does not trigger a competing scrollToPage.
  */
 @Composable
 private fun PagedContent(
     pages: List<String>,
-    currentPage: Int,
+    startPage: Int,
+    seekPage: Int,
+    seekStamp: Long,
     rtl: Boolean,
     onTap: () -> Unit,
     onPageChanged: (Int) -> Unit,
@@ -458,7 +497,12 @@ private fun PagedContent(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(pages) {
-        if (currentPage > 0) pagerState.scrollToPage(currentPage)
+        if (startPage > 0 && startPage < pages.size) pagerState.scrollToPage(startPage)
+    }
+    LaunchedEffect(seekStamp) {
+        if (seekStamp != 0L && seekPage in pages.indices) {
+            pagerState.scrollToPage(seekPage)
+        }
     }
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }
@@ -476,6 +520,9 @@ private fun PagedContent(
     ) {
         HorizontalPager(
             state = pagerState,
+            // Keep one neighbor composed so the next page image starts
+            // loading before the flip instead of appearing blank.
+            beyondViewportPageCount = 1,
             modifier = Modifier.fillMaxSize(),
         ) { index ->
             ZoomablePage(
