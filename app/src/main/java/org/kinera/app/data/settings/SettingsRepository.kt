@@ -32,6 +32,8 @@ class SettingsRepository(private val context: Context) {
         val mangalibStatuses = stringSetPreferencesKey("mangalib_statuses")
         val mangalibGenres = stringSetPreferencesKey("mangalib_genres")
         val suwayomiSourceId = stringPreferencesKey("suwayomi_source_id")
+        val libraryUpdateEnabled = booleanPreferencesKey("library_update_enabled")
+        val libraryUpdateInterval = stringPreferencesKey("library_update_interval")
         val komgaUrl = stringPreferencesKey("komga_url")
         val komgaUser = stringPreferencesKey("komga_user")
         val komgaPassword = stringPreferencesKey("komga_password")
@@ -65,6 +67,11 @@ class SettingsRepository(private val context: Context) {
                 ?.toSet()
                 ?: emptySet(),
             suwayomiSourceId = prefs[Keys.suwayomiSourceId].orEmpty(),
+            libraryUpdateEnabled = prefs[Keys.libraryUpdateEnabled] ?: true,
+            libraryUpdateIntervalHours = prefs[Keys.libraryUpdateInterval]
+                ?.toIntOrNull()
+                ?.takeIf { it in UPDATE_INTERVALS }
+                ?: DEFAULT_UPDATE_INTERVAL_HOURS,
             komga = ServerConnection(
                 url = prefs[Keys.komgaUrl].orEmpty(),
                 user = prefs[Keys.komgaUser].orEmpty(),
@@ -133,6 +140,17 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.suwayomiSourceId] = sourceId.trim() }
     }
 
+    /** Enables or disables the periodic library update. */
+    suspend fun setLibraryUpdateEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.libraryUpdateEnabled] = enabled }
+    }
+
+    /** Sets the library update interval; unknown values fall back to default. */
+    suspend fun setLibraryUpdateInterval(hours: Int) {
+        if (hours !in UPDATE_INTERVALS) return
+        context.dataStore.edit { it[Keys.libraryUpdateInterval] = hours.toString() }
+    }
+
     /** Toggles one MangaLib status id in the catalog filter. */
     suspend fun setMangalibStatus(id: Int, enabled: Boolean) {
         context.dataStore.edit { prefs ->
@@ -191,3 +209,9 @@ enum class ServerId { KOMGA, SUWAYOMI }
 
 /** MangaDex chapter languages Kinera can filter by. */
 val SUPPORTED_LANGUAGES = setOf("en", "ru")
+
+/** Library update intervals offered in Settings, in hours. */
+val UPDATE_INTERVALS = setOf(6, 12, 24)
+
+/** Library update interval used until the user picks another one. */
+const val DEFAULT_UPDATE_INTERVAL_HOURS = 12

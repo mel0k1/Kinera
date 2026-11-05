@@ -19,6 +19,12 @@ data class FavouriteManga(
     val manga: Manga,
     val categoryId: Long?,
     val createdAt: Long,
+    /** Chapters that appeared since the user last opened the title. */
+    val newChapters: Int = 0,
+    /** Chapter count at the last library update. */
+    val totalChapters: Int = 0,
+    /** Id of the newest chapter at the last update; null before the first run. */
+    val lastChapterId: String? = null,
 )
 
 class LibraryRepository(
@@ -31,9 +37,7 @@ class LibraryRepository(
 
     val favourites: Flow<List<FavouriteManga>> =
         favouritesDao.observeAll().mapList { entity ->
-            val manga = runCatching { json.decodeFromString<Manga>(entity.mangaJson) }.getOrNull()
-                ?: Manga(id = entity.mangaId, source = MangaSource.fromId(entity.sourceId), title = entity.title)
-            FavouriteManga(manga, entity.categoryId, entity.createdAt)
+            entity.toFavouriteManga()
         }
 
     val categories: Flow<List<CategoryEntity>> = categoriesDao.observeAll()
@@ -73,6 +77,40 @@ class LibraryRepository(
         val existing = favouritesDao.get(mangaId) ?: return
         favouritesDao.insert(existing.copy(categoryId = categoryId))
     }
+
+    /** Snapshot for the library updater; safe on remote sources only. */
+    suspend fun favouritesSnapshot(): List<FavouriteManga> =
+        favouritesDao.getAll().map { it.toFavouriteManga() }
+
+    /**
+     * Stores the result of one library update. A smaller chapter count
+     * never resets the badge: sources may drop removed branches, but the
+     * user should still see that something changed.
+     */
+    suspend fun updateChapterInfo(
+        mangaId: String,
+        total: Int,
+        lastChapterId: String?,
+        newChapters: Int,
+        checkedAt: Long,
+    ) {
+        val existing = favouritesDao.get(mangaId) ?: return
+        val keptNew = if (total < existing.totalChapters && existing.totalChapters > 0) {
+            maxOf(existing.newChapters, newChapters)
+        } else {
+            newChapters
+        }
+        favouritesDao.updateChapterInfo(
+            mangaId = mangaId,
+            total = total,
+            lastChapterId = lastChapterId,
+            newChapters = keptNew,
+            checkedAt = checkedAt,
+        )
+    }
+
+    /** Clears the "new chapters" badge once the user opens the title. */
+    suspend fun markOpened(mangaId: String) = favouritesDao.clearNewChapters(mangaId)
 
     suspend fun saveProgress(
         manga: Manga,
@@ -138,6 +176,19 @@ class LibraryRepository(
 
     suspend fun deleteBookmark(bookmark: BookmarkEntity) =
         bookmarksDao.delete(bookmark.mangaId, bookmark.chapterId, bookmark.page)
+
+    private fun FavouriteEntity.toFavouriteManga(): FavouriteManga {
+        val manga = runCatching { json.decodeFromString<Manga>(mangaJson) }.getOrNull()
+            ?: Manga(id = mangaId, source = MangaSource.fromId(sourceId), title = title)
+        return FavouriteManga(
+            manga = manga,
+            categoryId = categoryId,
+            createdAt = createdAt,
+            newChapters = newChapters,
+            totalChapters = totalChapters,
+            lastChapterId = lastChapterId,
+        )
+    }
 
     private inline fun <T, R> Flow<List<T>>.mapList(crossinline transform: (T) -> R): Flow<List<R>> =
         map { list -> list.map(transform) }

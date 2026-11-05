@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,12 +29,14 @@ import org.kinera.app.ui.theme.KineraTheme
 /**
  * Cover-first manga card: the artwork does the talking, the press is
  * a springy scale (M3E motion), and the title sits tightly underneath.
+ * An optional [badge] highlights titles with unseen chapters.
  */
 @Composable
 fun MangaCard(
     manga: Manga,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    badge: Int = 0,
 ) {
     val interaction = rememberPressInteraction()
     Column(
@@ -64,6 +67,21 @@ fun MangaCard(
                         ),
                     ),
             )
+            if (badge > 0) {
+                Text(
+                    text = "+$badge",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(10.dp),
+                        )
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
         }
         Text(
             text = manga.title,

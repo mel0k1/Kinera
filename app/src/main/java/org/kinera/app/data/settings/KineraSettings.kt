@@ -57,6 +57,10 @@ data class KineraSettings(
     val mangalibGenres: Set<Int> = emptySet(),
     /** Preferred source id inside the Suwayomi server; empty = automatic pick. */
     val suwayomiSourceId: String = "",
+    /** Periodic background refresh of the library (new chapter badges). */
+    val libraryUpdateEnabled: Boolean = true,
+    /** Interval of the background refresh in hours. */
+    val libraryUpdateIntervalHours: Int = 12,
     val komga: ServerConnection = ServerConnection(),
     val suwayomi: ServerConnection = ServerConnection(),
 )

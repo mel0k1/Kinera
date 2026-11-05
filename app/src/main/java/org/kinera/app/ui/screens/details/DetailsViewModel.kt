@@ -54,6 +54,8 @@ class DetailsViewModel(
         viewModelScope.launch {
             library.observeFavorite(mangaId).collect { _isFavorite.value = it }
         }
+        // Opening the title counts as seeing the new chapters.
+        viewModelScope.launch { library.markOpened(mangaId) }
         viewModelScope.launch {
             downloads.forManga(mangaId).collect { rows ->
                 _downloadStates.value = rows.associateBy { it.chapterId }

@@ -17,7 +17,7 @@ import org.kinera.app.data.local.entity.HistoryEntity
 
 @Database(
     entities = [FavouriteEntity::class, HistoryEntity::class, CategoryEntity::class, DownloadEntity::class, BookmarkEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class LibraryDatabase : RoomDatabase() {
@@ -62,6 +62,16 @@ abstract class LibraryDatabase : RoomDatabase() {
                         "`created_at` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`manga_id`, `chapter_id`, `page`))",
                 )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Library auto-update bookkeeping for favourites.
+                db.execSQL("ALTER TABLE `favourites` ADD COLUMN `total_chapters` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `favourites` ADD COLUMN `last_chapter_id` TEXT")
+                db.execSQL("ALTER TABLE `favourites` ADD COLUMN `new_chapters` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `favourites` ADD COLUMN `checked_at` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

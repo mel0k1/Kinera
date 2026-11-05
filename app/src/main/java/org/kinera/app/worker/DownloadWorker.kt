@@ -12,6 +12,7 @@ import org.kinera.app.data.downloads.DownloadStorage
 import org.kinera.app.data.local.dao.DownloadsDao
 import org.kinera.app.data.local.entity.DownloadState
 import org.kinera.app.data.repository.CatalogRepository
+import org.kinera.app.data.repository.LibraryUpdater
 
 /**
  * Saves every page of one chapter to the private download directory.
@@ -84,12 +85,13 @@ class DownloadWorker(
     }
 }
 
-/** Hand-rolled factory so the worker gets repositories through Koin. */
+/** Hand-rolled factory so the workers get repositories through Koin. */
 class KineraWorkerFactory(
     private val catalog: CatalogRepository,
     private val dao: DownloadsDao,
     private val storage: DownloadStorage,
     private val client: OkHttpClient,
+    private val libraryUpdater: LibraryUpdater,
 ) : WorkerFactory() {
 
     override fun createWorker(
@@ -99,6 +101,8 @@ class KineraWorkerFactory(
     ): androidx.work.ListenableWorker? = when (workerClassName) {
         DownloadWorker::class.java.name ->
             DownloadWorker(appContext, workerParameters, catalog, dao, storage, client)
+        LibraryUpdateWorker::class.java.name ->
+            LibraryUpdateWorker(appContext, workerParameters, libraryUpdater)
         else -> null
     }
 }

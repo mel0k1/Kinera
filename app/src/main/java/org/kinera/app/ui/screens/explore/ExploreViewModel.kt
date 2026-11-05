@@ -66,6 +66,8 @@ class ExploreViewModel(
             buildList {
                 add(MangaSource.MANGADEX)
                 add(MangaSource.MANGALIB)
+                add(MangaSource.REMANGA)
+                add(MangaSource.DESUME)
                 if (current.komga.isConfigured) add(MangaSource.KOMGA)
                 if (current.suwayomi.isConfigured) add(MangaSource.SUWAYOMI)
             }

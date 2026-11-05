@@ -29,6 +29,8 @@ import org.kinera.app.core.model.MangaState
 import org.kinera.app.core.model.Paged
 import org.kinera.app.data.komga.KomgaApi
 import org.kinera.app.data.komga.KomgaSource
+import org.kinera.app.data.desume.DesuMeApi
+import org.kinera.app.data.desume.DesuMeSource
 import org.kinera.app.data.localsource.FolderMangaSource
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.LocalMangaSource
@@ -37,6 +39,8 @@ import org.kinera.app.data.mangadex.MangaDexApi
 import org.kinera.app.data.mangadex.MangaDexSource
 import org.kinera.app.data.mangalib.MangaLibApi
 import org.kinera.app.data.mangalib.MangaLibSource
+import org.kinera.app.data.remanga.RemangaApi
+import org.kinera.app.data.remanga.RemangaSource
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.repository.LibraryRepository
 import org.kinera.app.data.settings.SettingsRepository
@@ -281,6 +285,14 @@ private class FakeCatalog(
         retrofitOf(MangaLibApi::class.java),
         okhttp3.OkHttpClient(),
         SettingsRepository(context),
+    ),
+    remanga = RemangaSource(
+        retrofitOf(RemangaApi::class.java),
+        okhttp3.OkHttpClient(),
+    ),
+    desume = DesuMeSource(
+        retrofitOf(DesuMeApi::class.java),
+        okhttp3.OkHttpClient(),
     ),
     komga = KomgaSource(retrofitOf(KomgaApi::class.java), SettingsRepository(context)),
     suwayomi = SuwayomiSource(

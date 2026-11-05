@@ -15,6 +15,9 @@ interface FavouritesDao {
     @Query("SELECT * FROM favourites ORDER BY created_at DESC")
     fun observeAll(): Flow<List<FavouriteEntity>>
 
+    @Query("SELECT * FROM favourites ORDER BY created_at ASC")
+    suspend fun getAll(): List<FavouriteEntity>
+
     @Query("SELECT * FROM favourites WHERE manga_id = :mangaId LIMIT 1")
     suspend fun get(mangaId: String): FavouriteEntity?
 
@@ -29,6 +32,21 @@ interface FavouritesDao {
 
     @Query("DELETE FROM favourites WHERE manga_id = :mangaId")
     suspend fun deleteById(mangaId: String)
+
+    @Query(
+        "UPDATE favourites SET total_chapters = :total, last_chapter_id = :lastChapterId, " +
+            "new_chapters = :newChapters, checked_at = :checkedAt WHERE manga_id = :mangaId",
+    )
+    suspend fun updateChapterInfo(
+        mangaId: String,
+        total: Int,
+        lastChapterId: String?,
+        newChapters: Int,
+        checkedAt: Long,
+    )
+
+    @Query("UPDATE favourites SET new_chapters = 0 WHERE manga_id = :mangaId")
+    suspend fun clearNewChapters(mangaId: String)
 }
 
 @Dao

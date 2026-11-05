@@ -14,6 +14,7 @@ import org.kinera.app.data.settings.ServerConnection
 import org.kinera.app.data.settings.ServerId
 import org.kinera.app.data.settings.SettingsRepository
 import org.kinera.app.data.settings.ThemeMode
+import org.kinera.app.data.repository.LibraryUpdateScheduler
 import org.kinera.app.data.suwayomi.SuwayomiSource
 import org.kinera.app.data.suwayomi.SuwayomiSourceOption
 import org.kinera.app.core.util.UiState
@@ -21,6 +22,7 @@ import org.kinera.app.core.util.UiState
 class SettingsViewModel(
     private val repository: SettingsRepository,
     private val suwayomi: SuwayomiSource,
+    private val libraryUpdateScheduler: LibraryUpdateScheduler,
 ) : ViewModel() {
 
     val settings = repository.settings
@@ -37,6 +39,16 @@ class SettingsViewModel(
     fun setWebtoonZoom(enabled: Boolean) = viewModelScope.launch { repository.setWebtoonZoom(enabled) }
 
     fun setReaderRtl(enabled: Boolean) = viewModelScope.launch { repository.setReaderRtl(enabled) }
+
+    fun setLibraryUpdate(enabled: Boolean) = viewModelScope.launch {
+        repository.setLibraryUpdateEnabled(enabled)
+        libraryUpdateScheduler.applySettings()
+    }
+
+    fun setLibraryUpdateInterval(hours: Int) = viewModelScope.launch {
+        repository.setLibraryUpdateInterval(hours)
+        libraryUpdateScheduler.applySettings()
+    }
 
     fun setMangadexLanguage(language: String, enabled: Boolean) = viewModelScope.launch {
         repository.setMangadexLanguage(language, enabled)

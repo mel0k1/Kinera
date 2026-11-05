@@ -62,6 +62,7 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.StayCurrentLandscape
 import androidx.compose.material.icons.rounded.ZoomIn
+import androidx.compose.material.icons.rounded.Sync
 import org.kinera.app.BuildConfig
 import org.kinera.app.R
 import org.kinera.app.core.util.UiState
@@ -195,6 +196,43 @@ fun SettingsScreen(
                 checked = settings.readerRtl,
                 onCheckedChange = viewModel::setReaderRtl,
             )
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
+            SectionHeader(stringResource(R.string.settings_library), Icons.Rounded.Sync)
+
+            SwitchRow(
+                icon = Icons.Rounded.Sync,
+                title = stringResource(R.string.settings_library_update),
+                subtitle = stringResource(R.string.settings_library_update_summary),
+                checked = settings.libraryUpdateEnabled,
+                onCheckedChange = viewModel::setLibraryUpdate,
+            )
+
+            if (settings.libraryUpdateEnabled) {
+                Text(
+                    text = stringResource(R.string.settings_library_interval),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    org.kinera.app.data.settings.UPDATE_INTERVALS.sorted().forEachIndexed { index, hours ->
+                        SegmentedButton(
+                            selected = settings.libraryUpdateIntervalHours == hours,
+                            onClick = { viewModel.setLibraryUpdateInterval(hours) },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = org.kinera.app.data.settings.UPDATE_INTERVALS.size,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.settings_library_hours, hours))
+                        }
+                    }
+                }
+            }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
             SectionHeader(stringResource(R.string.settings_sources), Icons.Rounded.Language)

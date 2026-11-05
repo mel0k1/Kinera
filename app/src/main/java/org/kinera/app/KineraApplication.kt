@@ -5,8 +5,13 @@ import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.kinera.app.di.kineraModules
+import org.kinera.app.data.repository.LibraryUpdateScheduler
 import org.kinera.app.worker.KineraWorkerFactory
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
@@ -22,6 +27,10 @@ class KineraApplication : Application(), ImageLoaderFactory, Configuration.Provi
                 androidContext(this@KineraApplication)
                 modules(kineraModules(this@KineraApplication))
             }
+        }
+        // Keep the periodic library update in sync with the saved settings.
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            runCatching { GlobalContext.get().get<LibraryUpdateScheduler>().applySettings() }
         }
     }
 

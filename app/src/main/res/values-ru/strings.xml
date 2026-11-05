@@ -17,6 +17,10 @@
     <string name="action_cancel">Отмена</string>
     <string name="action_delete">Удалить</string>
     <string name="library_remove_favorite">Убрать из библиотеки</string>
+    <string name="library_check_updates">Проверить новые главы</string>
+    <string name="library_updated_new">Библиотека обновлена · %1$d с новыми главами</string>
+    <string name="library_updated_none">Библиотека обновлена · новых глав нет</string>
+    <string name="library_update_failed">Не удалось обновить библиотеку</string>
 
     <string name="explore_title">Обзор</string>
     <string name="explore_popular">Популярное</string>
@@ -138,6 +142,12 @@
     <string name="settings_webtoon_zoom_summary">Щипок и двойное нажатие для зума в режиме ленты</string>
     <string name="settings_reader_rtl">Чтение справа налево</string>
     <string name="settings_reader_rtl_summary">Классический порядок страниц манги в постраничном режиме</string>
+
+    <string name="settings_library">Библиотека</string>
+    <string name="settings_library_update">Автообновление библиотеки</string>
+    <string name="settings_library_update_summary">Проверять избранное на новые главы в фоне</string>
+    <string name="settings_library_interval">Интервал проверки</string>
+    <string name="settings_library_hours">%1$d ч</string>
 
     <string name="settings_sources">Источники</string>
     <string name="settings_mangadex_languages">Языки MangaDex</string>

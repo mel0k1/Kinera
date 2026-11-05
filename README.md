@@ -6,7 +6,7 @@
 
 # Kinera
 
-A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose and Material 3 Expressive. It reads from the official [MangaDex API](https://api.mangadex.org), your self-hosted **Komga** or **Suwayomi** server, local CBZ archives — and keeps your library on the device. No accounts, no tracking, no bundled content.
+A manga and manhwa reader for Android, written in Kotlin with Jetpack Compose and Material 3 Expressive. It reads from the official [MangaDex API](https://api.mangadex.org), the Russian catalogs **MangaLib**, **Remanga** and **Desu.me**, your self-hosted **Komga** or **Suwayomi** server, local CBZ archives — and keeps your library on the device. No accounts, no tracking, no bundled content.
 
 - Android 12+ (API 31)
 - Kotlin 2.4 · Compose · Material 3 Expressive
@@ -26,7 +26,8 @@ Real renders of the actual Compose UI, recorded on the JVM with [Roborazzi](http
 
 - **Library** — favourites with custom categories, long-press to remove
 - **Explore** — popular and latest titles, endless scroll, per-source tabs
-- **Sources** — **MangaDex** (with an RU/EN language filter) and **MangaLib** — the largest Russian catalog — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
+- **Sources** — **MangaDex** (with an RU/EN language filter), **MangaLib**, **Remanga** and **Desu.me** — Russian catalogs — out of the box; self-hosted **Komga** and **Suwayomi** servers (URL + optional basic auth in Settings; covers and pages are authenticated automatically; a source picker inside Suwayomi in Settings)
+- **Library auto-update** — Kinera checks favourites for new chapters in the background (every 6/12/24 hours, configurable), badges them on the shelf and clears the badge when you open the title; there is also a "check now" button in the Library toolbar
 - **MangaLib filters** — status chips and a genre picker right in Explore (and search), persisted between runs
 - **Local sources** — import CBZ/ZIP archives through the system picker, or add a folder of loose images (subfolders become chapters); nothing is copied, pages are read straight from where they live
 - **Offline downloads** — save chapters from the chapter list (one by one or all at once), a dedicated Downloads tab shows progress, retries and cleanup
@@ -64,6 +65,8 @@ org.kinera.app
 ├── data/
 │   ├── mangadex/  Retrofit API, DTOs, MangaDex source
 │   ├── mangalib/  MangaLib JSON API source (Russian catalog)
+│   ├── remanga/   Remanga JSON API source (Russian catalog)
+│   ├── desume/    Desu.me JSON API source (Russian catalog, mirror fallback)
 │   ├── komga/     Komga REST source (self-hosted)
 │   ├── suwayomi/  Suwayomi GraphQL source (self-hosted)
 │   ├── selfhost/  basic-auth interceptor for self-hosted servers
@@ -73,18 +76,18 @@ org.kinera.app
 │   ├── settings/  DataStore preferences
 │   └── repository/ catalog, library and download repositories
 ├── di/            Koin modules
-├── worker/        WorkManager job that saves chapter pages
+├── worker/        WorkManager jobs: chapter downloads and the library update
 └── ui/
     ├── theme/     Material 3 Expressive theme and motion
     ├── components/ shared composables
     └── screens/   library, explore, search, details, reader, downloads, history, settings
 ```
 
-UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlinx.serialization. Images go through Coil with a 256 MB disk cache. Background work (chapter downloads) is WorkManager with a Koin-backed worker factory.
+UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlinx.serialization. Images go through Coil with a 256 MB disk cache. Background work (chapter downloads, periodic library refresh) is WorkManager with a Koin-backed worker factory.
 
 ## Roadmap
 
-- More online catalog sources
+- Filters (genres / status) for Remanga and Desu.me
 - Per-source settings (language filters, source picker inside Suwayomi)
 - Beta release with signed builds in Releases
 
@@ -93,6 +96,8 @@ UI is 100% Jetpack Compose. DI is Koin. Network is Retrofit + OkHttp with kotlin
 - [Kotatsu](https://github.com/KotatsuApp/Kotatsu) — inspiration and the general idea of a free, open manga reader for Android
 - [MangaDex](https://mangadex.org) — catalog data comes from their public API; Kinera is not affiliated with MangaDex
 - [MangaLib](https://mangalib.me) — the largest Russian manga catalog, read through their public API
+- [Remanga](https://remanga.org) — Russian manga catalog, read through their public API
+- [Desu.me](https://desu.me) — Russian anime & manga portal, read through their public API
 - [Komga](https://komga.org) and [Suwayomi](https://suwayomi.com) — supported self-hosted server APIs
 - App icon and logo by [mel0k1](https://github.com/mel0k1)
 
