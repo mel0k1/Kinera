@@ -44,33 +44,34 @@ fun KineraNavHost(
         navController = navController,
         startDestination = LibraryRoute,
         modifier = modifier,
-        // M3E motion: content eases in with a soft spring, exits fast
+        // M3E motion: content eases in with a short spring and exits fast;
+        // slow bouncy transitions read as lag when hopping between tabs.
         enterTransition = {
-            fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+            fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
                 scaleIn(
                     animationSpec = spring(
                         dampingRatio = 0.9f,
-                        stiffness = Spring.StiffnessMediumLow,
+                        stiffness = Spring.StiffnessMedium,
                     ),
-                    initialScale = 0.96f,
+                    initialScale = 0.97f,
                 )
         },
-        exitTransition = { fadeOut(tween(140)) },
+        exitTransition = { fadeOut(tween(120)) },
         popEnterTransition = {
-            fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+            fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
                 scaleIn(
                     animationSpec = spring(
                         dampingRatio = 0.9f,
-                        stiffness = Spring.StiffnessMediumLow,
+                        stiffness = Spring.StiffnessMedium,
                     ),
-                    initialScale = 0.96f,
+                    initialScale = 0.97f,
                 )
         },
         popExitTransition = {
-            fadeOut(tween(140)) +
+            fadeOut(tween(120)) +
                 scaleOut(
-                    animationSpec = tween(140),
-                    targetScale = 0.98f,
+                    animationSpec = tween(120),
+                    targetScale = 0.985f,
                 )
         },
     ) {

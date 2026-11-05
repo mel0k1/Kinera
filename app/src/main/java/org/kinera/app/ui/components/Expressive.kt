@@ -24,7 +24,9 @@ fun Modifier.pressScale(
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) pressedScale else 1f,
-        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>(),
+        // A crisp spring instead of the bouncy default: the press should
+        // feel immediate, not floaty.
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>(),
         label = "pressScale",
     )
     graphicsLayer {

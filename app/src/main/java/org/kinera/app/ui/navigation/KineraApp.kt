@@ -192,9 +192,9 @@ private fun NavPill(
             .clip(CircleShape)
             .background(container, CircleShape)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Icon(
             imageVector = if (selected) activeIcon else inactiveIcon,
@@ -204,17 +204,28 @@ private fun NavPill(
         )
         AnimatedVisibility(
             visible = selected,
+            // A short, non-bouncy grow keeps the whole row from wobbling:
+            // both the selected and the previous pill resize with the same
+            // crisp spring so the reflow reads as one motion.
             enter = expandHorizontally(
-                animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-            ) + fadeIn(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()),
+                animationSpec = spring(
+                    dampingRatio = 0.9f,
+                    stiffness = 480f,
+                ),
+            ) + fadeIn(animationSpec = MaterialTheme.motionScheme.fastEffectsSpec()),
             exit = shrinkHorizontally(
-                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                animationSpec = spring(
+                    dampingRatio = 0.95f,
+                    stiffness = 560f,
+                ),
             ) + fadeOut(animationSpec = MaterialTheme.motionScheme.fastEffectsSpec()),
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 color = contentColor,
+                maxLines = 1,
+                softWrap = false,
             )
         }
     }
