@@ -40,8 +40,8 @@ android {
         applicationId = "org.kinera.app"
         minSdk = 31
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4.0-beta"
+        versionCode = 5
+        versionName = "0.5.0"
         vectorDrawables { useSupportLibrary = true }
     }
 
