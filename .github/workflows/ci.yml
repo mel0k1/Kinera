@@ -78,7 +78,7 @@ jobs:
         run: mv app/build/outputs/apk/release/app-release.apk "Kinera-${GITHUB_REF_NAME}-release.apk"
 
       - name: Download debug APK
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: kinera-debug-apk
 
