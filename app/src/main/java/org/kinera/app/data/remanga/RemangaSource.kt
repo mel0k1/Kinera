@@ -16,8 +16,10 @@ import org.kinera.app.core.model.MangaTag
 import org.kinera.app.core.model.Paged
 import org.kinera.app.data.remanga.dto.RemangaChapter
 import org.kinera.app.data.remanga.dto.RemangaCover
+import org.kinera.app.data.remanga.dto.RemangaGenre
 import org.kinera.app.data.remanga.dto.RemangaManga
 import org.kinera.app.data.remanga.dto.RemangaMangaShort
+import org.kinera.app.data.settings.SettingsRepository
 import java.time.OffsetDateTime
 
 /**
@@ -29,10 +31,15 @@ import java.time.OffsetDateTime
  * "rmch:<chapterId>". Chapters are fetched for the first translation branch
  * (most titles have exactly one); paid chapters that were not bought are
  * hidden.
+ *
+ * The catalog honors the genre / status filters stored in Settings (empty
+ * sets mean "everything"); they apply to Popular and to search, not to the
+ * latest-updates feed, which the API does not filter.
  */
 class RemangaSource(
     private val api: RemangaApi,
     private val client: OkHttpClient,
+    private val settings: SettingsRepository,
 ) {
 
     val source: MangaSource = MangaSource.REMANGA
@@ -46,7 +53,13 @@ class RemangaSource(
     suspend fun search(query: String, offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> {
         if (query.isBlank()) return popular(offset, limit)
         val page = offset / PAGE_SIZE + 1
-        val response = api.search(page = page, query = query)
+        val filters = settings.snapshot.value
+        val response = api.search(
+            page = page,
+            query = query,
+            genres = filters.remangaGenres.map { it.toString() }.takeIf { it.isNotEmpty() },
+            statuses = filters.remangaStatuses.toList().takeIf { it.isNotEmpty() },
+        )
         return Paged(
             items = response.results.map { it.toDomain() },
             offset = offset,
@@ -58,13 +71,36 @@ class RemangaSource(
     /** One page of the rated catalog, newest-updated or top-rated. */
     private suspend fun catalog(offset: Int, ordering: String): Paged<Manga> {
         val page = offset / PAGE_SIZE + 1
-        val response = api.catalog(page = page, ordering = ordering)
+        val filters = settings.snapshot.value
+        val response = api.catalog(
+            page = page,
+            ordering = ordering,
+            genres = filters.remangaGenres.map { it.toString() }.takeIf { it.isNotEmpty() },
+            statuses = filters.remangaStatuses.toList().takeIf { it.isNotEmpty() },
+        )
         return Paged(
             items = response.results.map { it.toDomain() },
             offset = offset,
             total = response.count,
             hasNext = response.next != null,
         )
+    }
+
+    /* ----- catalog ----- */
+
+    /**
+     * Genres available on the Remanga site, alphabetically; used by the
+     * filter sheet in Explore. Cached for the lifetime of the process.
+     */
+    suspend fun genres(): List<RemangaGenre> {
+        genreCache?.let { return it }
+        val list = runCatching { api.genreForms().content.genres }
+            .getOrNull()
+            ?.filter { it.name.isNotBlank() }
+            ?.sortedBy { it.name.lowercase() }
+            .orEmpty()
+        if (list.isNotEmpty()) genreCache = list
+        return list
     }
 
     suspend fun details(mangaId: String): Manga {
@@ -175,6 +211,9 @@ class RemangaSource(
     private fun parseDate(raw: String?): Long = runCatching {
         OffsetDateTime.parse(raw).toInstant().toEpochMilli()
     }.getOrDefault(0L)
+
+    @Volatile
+    private var genreCache: List<RemangaGenre>? = null
 
     companion object {
         const val PAGE_SIZE = 20

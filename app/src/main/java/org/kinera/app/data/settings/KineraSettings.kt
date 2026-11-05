@@ -55,6 +55,12 @@ data class KineraSettings(
     val mangalibStatuses: Set<Int> = emptySet(),
     /** MangaLib genre ids kept in the catalog. Empty = all genres. */
     val mangalibGenres: Set<Int> = emptySet(),
+    /** Remanga status ids kept in the catalog, e.g. [2, 1]. Empty = all statuses. */
+    val remangaStatuses: Set<Int> = emptySet(),
+    /** Remanga genre ids kept in the catalog. Empty = all genres. */
+    val remangaGenres: Set<Int> = emptySet(),
+    /** Desu.me genre slugs kept in the catalog, e.g. ["drama"]. Empty = all genres. */
+    val desumeGenres: Set<String> = emptySet(),
     /** Preferred source id inside the Suwayomi server; empty = automatic pick. */
     val suwayomiSourceId: String = "",
     /** Periodic background refresh of the library (new chapter badges). */

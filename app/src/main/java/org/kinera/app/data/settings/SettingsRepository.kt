@@ -31,6 +31,9 @@ class SettingsRepository(private val context: Context) {
         val mangadexLanguages = stringSetPreferencesKey("mangadex_languages")
         val mangalibStatuses = stringSetPreferencesKey("mangalib_statuses")
         val mangalibGenres = stringSetPreferencesKey("mangalib_genres")
+        val remangaStatuses = stringSetPreferencesKey("remanga_statuses")
+        val remangaGenres = stringSetPreferencesKey("remanga_genres")
+        val desumeGenres = stringSetPreferencesKey("desume_genres")
         val suwayomiSourceId = stringPreferencesKey("suwayomi_source_id")
         val libraryUpdateEnabled = booleanPreferencesKey("library_update_enabled")
         val libraryUpdateInterval = stringPreferencesKey("library_update_interval")
@@ -64,6 +67,18 @@ class SettingsRepository(private val context: Context) {
                 ?: emptySet(),
             mangalibGenres = prefs[Keys.mangalibGenres]
                 ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            remangaStatuses = prefs[Keys.remangaStatuses]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            remangaGenres = prefs[Keys.remangaGenres]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            desumeGenres = prefs[Keys.desumeGenres]
+                ?.filter { it.isNotBlank() }
                 ?.toSet()
                 ?: emptySet(),
             suwayomiSourceId = prefs[Keys.suwayomiSourceId].orEmpty(),
@@ -184,6 +199,61 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs.remove(Keys.mangalibStatuses)
             prefs.remove(Keys.mangalibGenres)
+        }
+    }
+
+    /** Toggles one Remanga status id in the catalog filter. */
+    suspend fun setRemangaStatus(id: Int, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.remangaStatuses]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet()
+            prefs[Keys.remangaStatuses] =
+                (if (enabled) current + id else current - id)
+                    .map { it.toString() }
+                    .toSet()
+        }
+    }
+
+    /** Toggles one Remanga genre id in the catalog filter. */
+    suspend fun setRemangaGenre(id: Int, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.remangaGenres]
+                ?.mapNotNull { it.toIntOrNull() }
+                ?.toSet()
+                ?: emptySet()
+            prefs[Keys.remangaGenres] =
+                (if (enabled) current + id else current - id)
+                    .map { it.toString() }
+                    .toSet()
+        }
+    }
+
+    /** Lifts every Remanga catalog filter at once. */
+    suspend fun clearRemangaFilters() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(Keys.remangaStatuses)
+            prefs.remove(Keys.remangaGenres)
+        }
+    }
+
+    /** Toggles one Desu.me genre slug in the catalog filter. */
+    suspend fun setDesumeGenre(slug: String, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.desumeGenres]
+                ?.filter { it.isNotBlank() }
+                ?.toSet()
+                ?: emptySet()
+            prefs[Keys.desumeGenres] =
+                (if (enabled) current + slug else current - slug)
+        }
+    }
+
+    /** Lifts the Desu.me genre filter. */
+    suspend fun clearDesumeFilters() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(Keys.desumeGenres)
         }
     }
 

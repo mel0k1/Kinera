@@ -289,10 +289,12 @@ private class FakeCatalog(
     remanga = RemangaSource(
         retrofitOf(RemangaApi::class.java),
         okhttp3.OkHttpClient(),
+        SettingsRepository(context),
     ),
     desume = DesuMeSource(
         retrofitOf(DesuMeApi::class.java),
         okhttp3.OkHttpClient(),
+        SettingsRepository(context),
     ),
     komga = KomgaSource(retrofitOf(KomgaApi::class.java), SettingsRepository(context)),
     suwayomi = SuwayomiSource(

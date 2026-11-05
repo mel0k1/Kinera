@@ -1,6 +1,7 @@
 package org.kinera.app.data.desume
 
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -15,6 +16,7 @@ import org.kinera.app.core.model.Paged
 import org.kinera.app.data.desume.dto.DesuMeChapter
 import org.kinera.app.data.desume.dto.DesuMeManga
 import org.kinera.app.data.desume.dto.DesuMeMangaShort
+import org.kinera.app.data.settings.SettingsRepository
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -26,10 +28,15 @@ import java.net.URL
  * The portal migrates between mirrors every few months, so the first call
  * probes the known domains in order and the first one that answers wins;
  * the choice is cached for the lifetime of the process.
+ *
+ * The catalog honors the genre filter stored in Settings (empty set means
+ * "everything"). The API has no server-side status filter, so only genres
+ * are offered.
  */
 class DesuMeSource(
     private val api: DesuMeApi,
     private val client: OkHttpClient,
+    private val settings: SettingsRepository,
 ) {
 
     val source: MangaSource = MangaSource.DESUME
@@ -38,6 +45,9 @@ class DesuMeSource(
 
     @Volatile
     private var resolvedDomain: String? = null
+
+    @Volatile
+    private var genreCache: List<DesuMeGenreOption>? = null
 
     suspend fun popular(offset: Int, limit: Int = PAGE_SIZE): Paged<Manga> =
         list(offset, order = ORDER_POPULAR, query = null)
@@ -79,10 +89,14 @@ class DesuMeSource(
     private suspend fun list(offset: Int, order: String, query: String?): Paged<Manga> {
         val domain = domain()
         val page = offset / PAGE_SIZE + 1
+        val genres = settings.snapshot.value.desumeGenres
+            .filter { it.isNotBlank() }
+            .joinToString(",")
         val url = buildString {
             append("https://").append(domain).append("/manga/api/?limit=").append(PAGE_SIZE)
             append("&order=").append(order)
             append("&page=").append(page)
+            if (genres.isNotEmpty()) append("&genres=").append(urlEncode(genres))
             if (query != null) append("&search=").append(urlEncode(query))
         }
         val response = api.catalog(url)
@@ -93,6 +107,43 @@ class DesuMeSource(
             // The envelope carries no total; rely on a shorter page.
             hasNext = response.response.size >= PAGE_SIZE,
         )
+    }
+
+    /**
+     * Genres offered by the catalog filter on the site. The API has no JSON
+     * endpoint for them, so the source reads the filter block of the manga
+     * page the same way the reference Kotatsu parser does; result is cached
+     * for the lifetime of the process.
+     */
+    suspend fun genres(): List<DesuMeGenreOption> {
+        genreCache?.let { return it }
+        val html = withContext(Dispatchers.IO) {
+            runCatching {
+                client.newCall(
+                    Request.Builder()
+                        .url("https://${domain()}/manga/")
+                        .build(),
+                ).execute().use { response ->
+                    if (!response.isSuccessful) null else response.body?.string()
+                }
+            }.getOrNull()
+        }.orEmpty()
+        val list = INPUT_TAG_REGEX.findAll(html)
+            .mapNotNull { match ->
+                val tag = match.value
+                val slug = SLUG_ATTR_REGEX.find(tag)?.groupValues?.get(1).orEmpty()
+                val name = NAME_ATTR_REGEX.find(tag)?.groupValues?.get(1).orEmpty()
+                if (slug.isBlank() || name.isBlank()) {
+                    null
+                } else {
+                    DesuMeGenreOption(slug = slug, name = name)
+                }
+            }
+            .distinctBy { it.slug }
+            .sortedBy { it.name.lowercase() }
+            .toList()
+        if (list.isNotEmpty()) genreCache = list
+        return list
     }
 
     /* ----- domain resolution ----- */
@@ -198,6 +249,11 @@ class DesuMeSource(
         /** desu.me is the canonical host; mirrors follow the Kotatsu parser. */
         private val DOMAIN_CANDIDATES = listOf("desu.me", "x.desu.city", "desu.city")
 
+        /** Filter inputs of the site carry the genre slug and localized name. */
+        private val INPUT_TAG_REGEX = Regex("<input[^>]*>", RegexOption.IGNORE_CASE)
+        private val SLUG_ATTR_REGEX = Regex("data-genre-slug=\"([^\"]*)\"")
+        private val NAME_ATTR_REGEX = Regex("data-genre-name=\"([^\"]*)\"")
+
         fun mangaUrl(id: String): String = "/manga/api/$id"
 
         fun chapterUrl(mangaId: String, chapterId: Long): String =
@@ -224,3 +280,9 @@ class DesuMeSource(
         )
     }
 }
+
+/** One genre of the Desu.me catalog filter: URL slug plus localized name. */
+data class DesuMeGenreOption(
+    val slug: String,
+    val name: String,
+)

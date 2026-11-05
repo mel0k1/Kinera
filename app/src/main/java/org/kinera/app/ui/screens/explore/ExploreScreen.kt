@@ -67,7 +67,6 @@ import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
 import org.kinera.app.data.localsource.FolderSourceStorage
-import org.kinera.app.data.mangalib.dto.MangaLibGenre
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.ErrorState
 import org.kinera.app.ui.components.LoadingState
@@ -90,6 +89,17 @@ private val MANGALIB_STATUSES = listOf(
     5 to R.string.explore_status_cancelled,
 )
 
+/** Remanga statuses in catalog order; ids match the Remanga API. */
+private val REMANGA_STATUSES = listOf(
+    2 to R.string.explore_status_ongoing,
+    1 to R.string.explore_status_finished,
+    3 to R.string.explore_status_paused,
+    4 to R.string.explore_status_cancelled,
+)
+
+/** Sources whose catalog supports the genre filter sheet. */
+private val GENRE_SHEET_SOURCES = setOf(MangaSource.MANGALIB, MangaSource.REMANGA, MangaSource.DESUME)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExploreScreen(
@@ -109,8 +119,13 @@ fun ExploreScreen(
     val mangalibStatuses by viewModel.mangalibStatuses.collectAsState()
     val mangalibGenres by viewModel.mangalibGenres.collectAsState()
     val mangalibGenreOptions by viewModel.mangalibGenreOptions.collectAsState()
+    val remangaStatuses by viewModel.remangaStatuses.collectAsState()
+    val remangaGenres by viewModel.remangaGenres.collectAsState()
+    val remangaGenreOptions by viewModel.remangaGenreOptions.collectAsState()
+    val desumeGenres by viewModel.desumeGenres.collectAsState()
+    val desumeGenreOptions by viewModel.desumeGenreOptions.collectAsState()
 
-    var showGenreSheet by remember { mutableStateOf(false) }
+    var genreSheetFor by remember { mutableStateOf<MangaSource?>(null) }
     var filtersDirty by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -222,13 +237,25 @@ fun ExploreScreen(
                         source = source,
                         mangadexLanguages = mangadexLanguages,
                         mangalibStatuses = mangalibStatuses,
-                        mangalibGenres = mangalibGenres,
+                        remangaStatuses = remangaStatuses,
+                        selectedGenreCount = when (source) {
+                            MangaSource.MANGALIB -> mangalibGenres.size
+                            MangaSource.REMANGA -> remangaGenres.size
+                            MangaSource.DESUME -> desumeGenres.size
+                            else -> 0
+                        },
                         onSourceSelect = viewModel::selectSource,
                         onToggleLanguage = viewModel::toggleMangadexLanguage,
                         onToggleMangalibStatus = viewModel::toggleMangalibStatus,
+                        onToggleRemangaStatus = viewModel::toggleRemangaStatus,
                         onOpenGenres = {
-                            viewModel.loadMangalibGenresIfNeeded()
-                            showGenreSheet = true
+                            when (source) {
+                                MangaSource.MANGALIB -> viewModel.loadMangalibGenresIfNeeded()
+                                MangaSource.REMANGA -> viewModel.loadRemangaGenresIfNeeded()
+                                MangaSource.DESUME -> viewModel.loadDesumeGenresIfNeeded()
+                                else -> Unit
+                            }
+                            genreSheetFor = source
                         },
                         onTabSwitch = viewModel::switchTab,
                         onLoadMore = viewModel::loadMore,
@@ -239,21 +266,45 @@ fun ExploreScreen(
         }
     }
 
-    if (showGenreSheet) {
-        MangaLibGenreSheet(
-            genres = mangalibGenreOptions,
-            selected = mangalibGenres,
-            onToggle = {
+    genreSheetFor?.let { sheetSource ->
+        val options: List<Pair<String, String>> = when (sheetSource) {
+            MangaSource.MANGALIB -> mangalibGenreOptions.map {
+                it.id.toString() to it.name.orEmpty()
+            }
+            MangaSource.REMANGA -> remangaGenreOptions.map {
+                it.id.toString() to it.name
+            }
+            else -> desumeGenreOptions.map {
+                it.slug to it.name
+            }
+        }
+        val selected: Set<String> = when (sheetSource) {
+            MangaSource.MANGALIB -> mangalibGenres.map { it.toString() }.toSet()
+            MangaSource.REMANGA -> remangaGenres.map { it.toString() }.toSet()
+            else -> desumeGenres
+        }
+        GenreSheet(
+            options = options,
+            selected = selected,
+            onToggle = { key ->
                 filtersDirty = true
-                viewModel.toggleMangalibGenre(it)
+                when (sheetSource) {
+                    MangaSource.MANGALIB -> key.toIntOrNull()?.let(viewModel::toggleMangalibGenre)
+                    MangaSource.REMANGA -> key.toIntOrNull()?.let(viewModel::toggleRemangaGenre)
+                    else -> viewModel.toggleDesumeGenre(key)
+                }
             },
             onReset = {
                 filtersDirty = false
-                viewModel.clearMangalibFilters()
+                when (sheetSource) {
+                    MangaSource.MANGALIB -> viewModel.clearMangalibFilters()
+                    MangaSource.REMANGA -> viewModel.clearRemangaFilters()
+                    else -> viewModel.clearDesumeFilters()
+                }
             },
             onDismiss = {
-                showGenreSheet = false
-                if (filtersDirty && source == MangaSource.MANGALIB) {
+                genreSheetFor = null
+                if (filtersDirty && source == sheetSource) {
                     viewModel.reload()
                 }
             },
@@ -304,10 +355,12 @@ private fun ExploreFeed(
     source: MangaSource,
     mangadexLanguages: Set<String>,
     mangalibStatuses: Set<Int>,
-    mangalibGenres: Set<Int>,
+    remangaStatuses: Set<Int>,
+    selectedGenreCount: Int,
     onSourceSelect: (MangaSource) -> Unit,
     onToggleLanguage: (String) -> Unit,
     onToggleMangalibStatus: (Int) -> Unit,
+    onToggleRemangaStatus: (Int) -> Unit,
     onOpenGenres: () -> Unit,
     onTabSwitch: (ExploreTab) -> Unit,
     onLoadMore: () -> Unit,
@@ -352,12 +405,15 @@ private fun ExploreFeed(
                 )
             }
         }
-        if (source == MangaSource.MANGALIB) {
+        if (source in GENRE_SHEET_SOURCES) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                MangaLibFilters(
-                    selectedStatuses = mangalibStatuses,
-                    selectedGenres = mangalibGenres,
-                    onToggleStatus = onToggleMangalibStatus,
+                CatalogFilters(
+                    source = source,
+                    mangalibStatuses = mangalibStatuses,
+                    remangaStatuses = remangaStatuses,
+                    selectedGenreCount = selectedGenreCount,
+                    onToggleMangalibStatus = onToggleMangalibStatus,
+                    onToggleRemangaStatus = onToggleRemangaStatus,
                     onOpenGenres = onOpenGenres,
                 )
             }
@@ -465,17 +521,25 @@ private fun LanguageChips(
 }
 
 /**
- * MangaLib catalog filters: status chips plus a genres chip that opens the
- * bottom sheet. A status chip off means that status is filtered out; no
- * chip on means the whole catalog.
+ * Catalog filters for the RU sources: status chips (where the API supports
+ * them) plus a genres chip that opens the bottom sheet. A status chip off
+ * means that status is filtered out; no chip on means the whole catalog.
  */
 @Composable
-private fun MangaLibFilters(
-    selectedStatuses: Set<Int>,
-    selectedGenres: Set<Int>,
-    onToggleStatus: (Int) -> Unit,
+private fun CatalogFilters(
+    source: MangaSource,
+    mangalibStatuses: Set<Int>,
+    remangaStatuses: Set<Int>,
+    selectedGenreCount: Int,
+    onToggleMangalibStatus: (Int) -> Unit,
+    onToggleRemangaStatus: (Int) -> Unit,
     onOpenGenres: () -> Unit,
 ) {
+    val statuses: List<Pair<Int, Int>> = when (source) {
+        MangaSource.MANGALIB -> MANGALIB_STATUSES
+        MangaSource.REMANGA -> REMANGA_STATUSES
+        else -> emptyList()
+    }
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -489,24 +553,34 @@ private fun MangaLibFilters(
                 modifier = Modifier.size(18.dp),
             )
         }
-        items(MANGALIB_STATUSES.size) { index ->
-            val (statusId, label) = MANGALIB_STATUSES[index]
+        items(statuses.size) { index ->
+            val (statusId, label) = statuses[index]
             FilterChip(
-                selected = statusId in selectedStatuses,
-                onClick = { onToggleStatus(statusId) },
+                selected = statusId in when (source) {
+                    MangaSource.MANGALIB -> mangalibStatuses
+                    MangaSource.REMANGA -> remangaStatuses
+                    else -> emptySet()
+                },
+                onClick = {
+                    when (source) {
+                        MangaSource.MANGALIB -> onToggleMangalibStatus(statusId)
+                        MangaSource.REMANGA -> onToggleRemangaStatus(statusId)
+                        else -> Unit
+                    }
+                },
                 label = { Text(stringResource(label)) },
             )
         }
         item {
             FilterChip(
-                selected = selectedGenres.isNotEmpty(),
+                selected = selectedGenreCount > 0,
                 onClick = onOpenGenres,
                 label = {
                     Text(
-                        if (selectedGenres.isEmpty()) {
+                        if (selectedGenreCount == 0) {
                             stringResource(R.string.explore_filter_genres)
                         } else {
-                            stringResource(R.string.explore_filter_genres_n, selectedGenres.size)
+                            stringResource(R.string.explore_filter_genres_n, selectedGenreCount)
                         },
                     )
                 },
@@ -516,15 +590,16 @@ private fun MangaLibFilters(
 }
 
 /**
- * MangaLib genre picker. Chips apply instantly; the caller reloads the feed
- * once on dismiss so a burst of taps does not fire a request per tap.
+ * Genre picker shared by MangaLib / Remanga / Desu.me. Chips apply
+ * instantly; the caller reloads the feed once on dismiss so a burst of
+ * taps does not fire a request per tap.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun MangaLibGenreSheet(
-    genres: List<MangaLibGenre>,
-    selected: Set<Int>,
-    onToggle: (Int) -> Unit,
+private fun GenreSheet(
+    options: List<Pair<String, String>>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -549,11 +624,11 @@ private fun MangaLibGenreSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                genres.forEach { genre ->
+                options.forEach { (key, label) ->
                     FilterChip(
-                        selected = genre.id in selected,
-                        onClick = { onToggle(genre.id) },
-                        label = { Text(genre.name.orEmpty()) },
+                        selected = key in selected,
+                        onClick = { onToggle(key) },
+                        label = { Text(label) },
                     )
                 }
             }

@@ -3,6 +3,7 @@ package org.kinera.app.data.remanga
 import kotlinx.serialization.Serializable
 import org.kinera.app.data.remanga.dto.RemangaChapter
 import org.kinera.app.data.remanga.dto.RemangaChapterPages
+import org.kinera.app.data.remanga.dto.RemangaGenre
 import org.kinera.app.data.remanga.dto.RemangaManga
 import org.kinera.app.data.remanga.dto.RemangaMangaShort
 import retrofit2.http.GET
@@ -15,6 +16,17 @@ data class RemangaList<T>(
     val next: String? = null,
     val previous: String? = null,
     val results: List<T> = emptyList(),
+)
+
+/** Answer of the forms endpoint that exposes the site-wide genre list. */
+@Serializable
+data class RemangaForms(
+    val content: RemangaFormsContent = RemangaFormsContent(),
+)
+
+@Serializable
+data class RemangaFormsContent(
+    val genres: List<RemangaGenre> = emptyList(),
 )
 
 /**
@@ -31,6 +43,8 @@ interface RemangaApi {
         @Query("page") page: Int = 1,
         @Query("count") count: Int = RemangaSource.PAGE_SIZE,
         @Query("ordering") ordering: String,
+        @Query("genres") genres: List<String>? = null,
+        @Query("status") statuses: List<Int>? = null,
     ): RemangaList<RemangaMangaShort>
 
     /** Search shares the shape but lives one level up. */
@@ -40,7 +54,15 @@ interface RemangaApi {
         @Query("count") count: Int = RemangaSource.PAGE_SIZE,
         @Query("query") query: String,
         @Query("ordering") ordering: String = ORDER_RATING,
+        @Query("genres") genres: List<String>? = null,
+        @Query("status") statuses: List<Int>? = null,
     ): RemangaList<RemangaMangaShort>
+
+    /** Site-wide genre list served by the title forms endpoint. */
+    @GET("api/forms/titles/")
+    suspend fun genreForms(
+        @Query("get") get: String = "genres",
+    ): RemangaForms
 
     @GET("api/v2/titles/{dir}/")
     suspend fun manga(

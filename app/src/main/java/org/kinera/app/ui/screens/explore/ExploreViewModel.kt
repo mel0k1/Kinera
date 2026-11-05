@@ -15,11 +15,15 @@ import kotlinx.coroutines.launch
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaSource
 import org.kinera.app.core.util.UiState
+import org.kinera.app.data.desume.DesuMeGenreOption
+import org.kinera.app.data.desume.DesuMeSource
 import org.kinera.app.data.localsource.FolderSourceStorage
 import org.kinera.app.data.localsource.ImportResult
 import org.kinera.app.data.localsource.LocalSourceStorage
 import org.kinera.app.data.mangalib.MangaLibSource
 import org.kinera.app.data.mangalib.dto.MangaLibGenre
+import org.kinera.app.data.remanga.RemangaSource
+import org.kinera.app.data.remanga.dto.RemangaGenre
 import org.kinera.app.data.repository.CatalogRepository
 import org.kinera.app.data.settings.SettingsRepository
 
@@ -35,6 +39,8 @@ class ExploreViewModel(
     private val folderStorage: FolderSourceStorage,
     private val settings: SettingsRepository,
     private val mangalib: MangaLibSource,
+    private val remanga: RemangaSource,
+    private val desume: DesuMeSource,
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ExploreTab>(ExploreTab.Popular)
@@ -142,6 +148,102 @@ class ExploreViewModel(
         viewModelScope.launch {
             settings.clearMangalibFilters()
             if (_source.value == MangaSource.MANGALIB && _tab.value != ExploreTab.Local) {
+                reload()
+            }
+        }
+    }
+
+    /* ----- Remanga filters ----- */
+
+    /** Remanga statuses enabled in the catalog filter; empty = no filter. */
+    val remangaStatuses: StateFlow<Set<Int>> = settings.snapshot
+        .map { it.remangaStatuses }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Remanga genres enabled in the catalog filter; empty = all genres. */
+    val remangaGenres: StateFlow<Set<Int>> = settings.snapshot
+        .map { it.remangaGenres }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Genres of the Remanga site, loaded once for the filter sheet. */
+    private val _remangaGenreOptions = MutableStateFlow<List<RemangaGenre>>(emptyList())
+    val remangaGenreOptions: StateFlow<List<RemangaGenre>> = _remangaGenreOptions.asStateFlow()
+
+    private var remangaGenresRequested = false
+
+    /** Fetches the genre list when the sheet is about to open; retries after a failure. */
+    fun loadRemangaGenresIfNeeded() {
+        if (remangaGenresRequested && _remangaGenreOptions.value.isNotEmpty()) return
+        remangaGenresRequested = true
+        viewModelScope.launch {
+            _remangaGenreOptions.value = remanga.genres()
+        }
+    }
+
+    /** Toggles a Remanga status chip and refreshes the Remanga feed. */
+    fun toggleRemangaStatus(statusId: Int) {
+        val enable = statusId !in remangaStatuses.value
+        viewModelScope.launch {
+            settings.setRemangaStatus(statusId, enable)
+            if (_source.value == MangaSource.REMANGA && _tab.value != ExploreTab.Local) {
+                reload()
+            }
+        }
+    }
+
+    /** Toggles a Remanga genre without touching the feed; reload happens on sheet dismiss. */
+    fun toggleRemangaGenre(genreId: Int) {
+        val enable = genreId !in remangaGenres.value
+        viewModelScope.launch {
+            settings.setRemangaGenre(genreId, enable)
+        }
+    }
+
+    /** Lifts every Remanga filter and refreshes the feed when visible. */
+    fun clearRemangaFilters() {
+        viewModelScope.launch {
+            settings.clearRemangaFilters()
+            if (_source.value == MangaSource.REMANGA && _tab.value != ExploreTab.Local) {
+                reload()
+            }
+        }
+    }
+
+    /* ----- Desu.me filters ----- */
+
+    /** Desu.me genre slugs enabled in the catalog filter; empty = all genres. */
+    val desumeGenres: StateFlow<Set<String>> = settings.snapshot
+        .map { it.desumeGenres }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Genres of the Desu.me site, loaded once for the filter sheet. */
+    private val _desumeGenreOptions = MutableStateFlow<List<DesuMeGenreOption>>(emptyList())
+    val desumeGenreOptions: StateFlow<List<DesuMeGenreOption>> = _desumeGenreOptions.asStateFlow()
+
+    private var desumeGenresRequested = false
+
+    /** Fetches the genre list when the sheet is about to open; retries after a failure. */
+    fun loadDesumeGenresIfNeeded() {
+        if (desumeGenresRequested && _desumeGenreOptions.value.isNotEmpty()) return
+        desumeGenresRequested = true
+        viewModelScope.launch {
+            _desumeGenreOptions.value = desume.genres()
+        }
+    }
+
+    /** Toggles a Desu.me genre without touching the feed; reload happens on sheet dismiss. */
+    fun toggleDesumeGenre(slug: String) {
+        val enable = slug !in desumeGenres.value
+        viewModelScope.launch {
+            settings.setDesumeGenre(slug, enable)
+        }
+    }
+
+    /** Lifts the Desu.me genre filter and refreshes the feed when visible. */
+    fun clearDesumeFilters() {
+        viewModelScope.launch {
+            settings.clearDesumeFilters()
+            if (_source.value == MangaSource.DESUME && _tab.value != ExploreTab.Local) {
                 reload()
             }
         }
