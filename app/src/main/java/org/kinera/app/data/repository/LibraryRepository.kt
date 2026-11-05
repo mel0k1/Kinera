@@ -2,6 +2,8 @@ package org.kinera.app.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.kinera.app.core.model.Manga
 import org.kinera.app.core.model.MangaChapter
@@ -34,6 +36,8 @@ class LibraryRepository(
     private val bookmarksDao: BookmarksDao,
     private val json: Json,
 ) {
+
+    private val reorderMutex = Mutex()
 
     val favourites: Flow<List<FavouriteManga>> =
         favouritesDao.observeAll().mapList { entity ->
@@ -69,9 +73,32 @@ class LibraryRepository(
     }
 
     suspend fun addCategory(name: String): Long =
-        categoriesDao.insert(CategoryEntity(name = name.trim(), createdAt = System.currentTimeMillis()))
+        categoriesDao.insert(
+            CategoryEntity(
+                name = name.trim(),
+                createdAt = System.currentTimeMillis(),
+                position = categoriesDao.getAll().maxOfOrNull { it.position + 1 } ?: 0,
+            ),
+        )
 
     suspend fun deleteCategory(id: Long) = categoriesDao.delete(id)
+
+    /**
+     * Moves one category to another index of the chips row and renumbers
+     * every position so the order stays dense after future moves. A mutex
+     * serializes rapid swaps fired while the user drags a chip.
+     */
+    suspend fun moveCategory(categoryId: Long, toIndex: Int) = reorderMutex.withLock {
+        val ordered = categoriesDao.getAll()
+        val fromIndex = ordered.indexOfFirst { it.id == categoryId }
+        if (fromIndex < 0 || toIndex !in ordered.indices || fromIndex == toIndex) return@withLock
+        val mutable = ordered.toMutableList()
+        val category = mutable.removeAt(fromIndex)
+        mutable.add(toIndex, category)
+        mutable.forEachIndexed { index, item ->
+            if (item.position != index) categoriesDao.updatePosition(item.id, index)
+        }
+    }
 
     suspend fun assignCategory(mangaId: String, categoryId: Long?) {
         val existing = favouritesDao.get(mangaId) ?: return

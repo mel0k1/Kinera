@@ -13,6 +13,9 @@ interface BookmarksDao {
     @Query("SELECT * FROM bookmarks WHERE manga_id = :mangaId ORDER BY created_at ASC")
     fun observeForManga(mangaId: String): Flow<List<BookmarkEntity>>
 
+    @Query("SELECT * FROM bookmarks")
+    suspend fun getAll(): List<BookmarkEntity>
+
     @Query(
         "SELECT EXISTS(SELECT 1 FROM bookmarks " +
             "WHERE manga_id = :mangaId AND chapter_id = :chapterId AND page = :page)",

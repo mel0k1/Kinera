@@ -18,6 +18,8 @@
     <string name="action_delete">Удалить</string>
     <string name="library_remove_favorite">Убрать из библиотеки</string>
     <string name="library_check_updates">Проверить новые главы</string>
+    <string name="library_move_to_category">Перенести в категорию</string>
+    <string name="library_category_none">Без категории</string>
     <string name="library_updated_new">Библиотека обновлена · %1$d с новыми главами</string>
     <string name="library_updated_none">Библиотека обновлена · новых глав нет</string>
     <string name="library_update_failed">Не удалось обновить библиотеку</string>

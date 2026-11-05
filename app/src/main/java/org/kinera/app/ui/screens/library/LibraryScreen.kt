@@ -2,7 +2,7 @@ package org.kinera.app.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Refresh
@@ -46,11 +48,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import org.kinera.app.R
 import org.kinera.app.core.model.Manga
+import org.kinera.app.data.local.entity.CategoryEntity
 import org.kinera.app.data.repository.FavouriteManga
 import org.kinera.app.ui.components.EmptyState
 import org.kinera.app.ui.components.MangaCard
@@ -136,28 +142,12 @@ fun LibraryScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = selectedCategory == null,
-                    onClick = { selectedCategory = null },
-                    label = { Text(stringResource(R.string.library_category_all)) },
-                    shape = MaterialTheme.shapes.small,
-                )
-                categories.forEach { category ->
-                    FilterChip(
-                        selected = selectedCategory == category.id,
-                        onClick = { selectedCategory = category.id },
-                        label = { Text(category.name) },
-                        shape = MaterialTheme.shapes.small,
-                    )
-                }
-            }
+            CategoryChipsRow(
+                categories = categories,
+                selectedCategory = selectedCategory,
+                onSelectCategory = { selectedCategory = it },
+                onMove = viewModel::moveCategory,
+            )
             if (visible.isEmpty()) {
                 EmptyState(
                     title = stringResource(R.string.library_empty),
@@ -166,8 +156,10 @@ fun LibraryScreen(
             } else {
                 LibraryGrid(
                     items = visible,
+                    categories = categories,
                     onMangaClick = onMangaClick,
                     onRemove = viewModel::removeFavorite,
+                    onAssignCategory = viewModel::assignCategory,
                 )
             }
         }
@@ -203,12 +195,106 @@ fun LibraryScreen(
     }
 }
 
+private const val ALL_CHIP_KEY = "all"
+
+/**
+ * Category chips with drag and drop reordering: long press starts a drag,
+ * the chip follows the finger and swaps with the neighbor it crosses; the
+ * final order is persisted in the database.
+ */
+@Composable
+private fun CategoryChipsRow(
+    categories: List<CategoryEntity>,
+    selectedCategory: Long?,
+    onSelectCategory: (Long?) -> Unit,
+    onMove: (Int, Int) -> Unit,
+) {
+    val listState = rememberLazyListState()
+    var draggingId by remember { mutableStateOf<Long?>(null) }
+    var dragOffset by remember { mutableStateOf(0f) }
+
+    LazyRow(
+        state = listState,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item(key = ALL_CHIP_KEY) {
+            FilterChip(
+                selected = selectedCategory == null,
+                onClick = { onSelectCategory(null) },
+                label = { Text(stringResource(R.string.library_category_all)) },
+                shape = MaterialTheme.shapes.small,
+            )
+        }
+        itemsIndexed(categories, key = { _, category -> category.id }) { _, category ->
+            val dragging = draggingId == category.id
+            FilterChip(
+                selected = selectedCategory == category.id,
+                onClick = { onSelectCategory(category.id) },
+                label = { Text(category.name) },
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier
+                    .then(if (dragging) Modifier else Modifier.animateItem())
+                    .zIndex(if (dragging) 1f else 0f)
+                    .graphicsLayer { translationX = if (dragging) dragOffset else 0f }
+                    .pointerInput(category.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                draggingId = category.id
+                                dragOffset = 0f
+                            },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                dragOffset += amount.x
+                                val info = listState.layoutInfo.visibleItemsInfo
+                                    .firstOrNull { it.key == category.id }
+                                    ?: return@detectDragGesturesAfterLongPress
+                                val center = info.offset + info.size / 2f + dragOffset
+                                val neighbor = listState.layoutInfo.visibleItemsInfo
+                                    .firstOrNull { other ->
+                                        other.key is Long && other.key != category.id &&
+                                            (if (amount.x > 0) {
+                                                other.offset > info.offset &&
+                                                    center > other.offset + other.size / 2f
+                                            } else {
+                                                other.offset < info.offset &&
+                                                    center < other.offset + other.size / 2f
+                                            })
+                                    }
+                                if (neighbor != null) {
+                                    val from = categories.indexOfFirst { it.id == category.id }
+                                    val to = categories.indexOfFirst { it.id == neighbor.key }
+                                    if (from >= 0 && to >= 0 && from != to) {
+                                        onMove(from, to)
+                                        // Anchor the chip to the same visual spot after the swap.
+                                        dragOffset += info.offset - neighbor.offset
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                draggingId = null
+                                dragOffset = 0f
+                            },
+                            onDragCancel = {
+                                draggingId = null
+                                dragOffset = 0f
+                            },
+                        )
+                    },
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LibraryGrid(
     items: List<FavouriteManga>,
+    categories: List<CategoryEntity>,
     onMangaClick: (Manga) -> Unit,
     onRemove: (Manga) -> Unit,
+    onAssignCategory: (Manga, Long?) -> Unit,
 ) {
     var menuTarget by remember { mutableStateOf<FavouriteManga?>(null) }
     LazyVerticalGrid(
@@ -238,6 +324,47 @@ private fun LibraryGrid(
         AlertDialog(
             onDismissRequest = { menuTarget = null },
             title = { Text(target.manga.title) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.library_move_to_category),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(
+                        onClick = {
+                            onAssignCategory(target.manga, null)
+                            menuTarget = null
+                        },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.library_category_none),
+                            color = if (target.categoryId == null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    }
+                    categories.forEach { category ->
+                        TextButton(
+                            onClick = {
+                                onAssignCategory(target.manga, category.id)
+                                menuTarget = null
+                            },
+                        ) {
+                            Text(
+                                text = category.name,
+                                color = if (target.categoryId == category.id) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                            )
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

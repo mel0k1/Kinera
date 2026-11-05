@@ -17,7 +17,7 @@ import org.kinera.app.data.local.entity.HistoryEntity
 
 @Database(
     entities = [FavouriteEntity::class, HistoryEntity::class, CategoryEntity::class, DownloadEntity::class, BookmarkEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class LibraryDatabase : RoomDatabase() {
@@ -72,6 +72,19 @@ abstract class LibraryDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `favourites` ADD COLUMN `last_chapter_id` TEXT")
                 db.execSQL("ALTER TABLE `favourites` ADD COLUMN `new_chapters` INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE `favourites` ADD COLUMN `checked_at` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // User-defined category ordering for the drag and drop chips.
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `position` INTEGER NOT NULL DEFAULT 0")
+                // Keep the previous implicit order (creation time) as the initial positions.
+                db.execSQL(
+                    "UPDATE `categories` SET `position` = " +
+                        "(SELECT COUNT(*) FROM `categories` AS older " +
+                        "WHERE older.`created_at` < `categories`.`created_at`)",
+                )
             }
         }
     }

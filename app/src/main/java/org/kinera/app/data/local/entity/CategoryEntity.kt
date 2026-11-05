@@ -9,4 +9,6 @@ data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    /** User-defined order shown in the library chips row. */
+    @ColumnInfo(name = "position") val position: Int = 0,
 )

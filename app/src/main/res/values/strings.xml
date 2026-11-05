@@ -22,6 +22,8 @@
     <string name="action_delete">Delete</string>
     <string name="library_remove_favorite">Remove from library</string>
     <string name="library_check_updates">Check for new chapters</string>
+    <string name="library_move_to_category">Move to category</string>
+    <string name="library_category_none">No category</string>
     <string name="library_updated_new">Library updated · %1$d titles with new chapters</string>
     <string name="library_updated_none">Library updated · no new chapters</string>
     <string name="library_update_failed">Could not update the library</string>

@@ -13,6 +13,9 @@ interface HistoryDao {
     @Query("SELECT * FROM history ORDER BY updated_at DESC")
     fun observeAll(): Flow<List<HistoryEntity>>
 
+    @Query("SELECT * FROM history")
+    suspend fun getAll(): List<HistoryEntity>
+
     @Query("SELECT * FROM history WHERE manga_id = :mangaId LIMIT 1")
     suspend fun get(mangaId: String): HistoryEntity?
 

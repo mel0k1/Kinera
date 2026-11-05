@@ -52,12 +52,18 @@ interface FavouritesDao {
 @Dao
 interface CategoriesDao {
 
-    @Query("SELECT * FROM categories ORDER BY created_at ASC")
+    @Query("SELECT * FROM categories ORDER BY position ASC, created_at ASC")
     fun observeAll(): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories ORDER BY position ASC, created_at ASC")
+    suspend fun getAll(): List<CategoryEntity>
 
     @Insert
     suspend fun insert(category: CategoryEntity): Long
 
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("UPDATE categories SET position = :position WHERE id = :id")
+    suspend fun updatePosition(id: Long, position: Int)
 }

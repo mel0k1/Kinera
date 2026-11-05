@@ -44,6 +44,17 @@ class LibraryViewModel(
         viewModelScope.launch { library.deleteCategory(category.id) }
     }
 
+    /** Persists a drag and drop swap of the category chips row. */
+    fun moveCategory(fromIndex: Int, toIndex: Int) {
+        val categoryId = categories.value.getOrNull(fromIndex)?.id ?: return
+        viewModelScope.launch { library.moveCategory(categoryId, toIndex) }
+    }
+
+    /** Puts one favourite into a category; null clears the assignment. */
+    fun assignCategory(manga: Manga, categoryId: Long?) {
+        viewModelScope.launch { library.assignCategory(manga.id, categoryId) }
+    }
+
     /**
      * Runs one update pass right away. The periodic worker covers the
      * background case; this gives the user instant feedback.
